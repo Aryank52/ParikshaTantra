@@ -65,6 +65,10 @@ export const StateDistrictPortalView: React.FC = () => {
             <option value="Bihar">Bihar</option>
             <option value="Rajasthan">Rajasthan</option>
             <option value="West Bengal">West Bengal</option>
+            <option value="Madhya Pradesh">Madhya Pradesh</option>
+            <option value="Tamil Nadu">Tamil Nadu</option>
+            <option value="Gujarat">Gujarat</option>
+            <option value="Punjab">Punjab</option>
           </select>
         </div>
       </div>
