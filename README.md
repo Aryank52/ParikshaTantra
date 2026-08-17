@@ -50,9 +50,6 @@ npm install
 npx vite --port 3000
 ```
 
-- **Frontend Application**: [http://localhost:3000](http://localhost:3000)
-- **Backend API Health Check**: [http://localhost:5000/api/health](http://localhost:5000/api/health)
-- **WebSocket Endpoint**: `ws://localhost:5000/ws`
 
 ### Containerized Deployment (Docker Compose)
 
