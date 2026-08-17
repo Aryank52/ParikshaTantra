@@ -50,6 +50,24 @@ export const AttackSimulatorView: React.FC = () => {
       desc: 'SOC Controller executes emergency freeze during active examination.',
       expected: 'Real-time WebSocket event broadcast; All CBT sessions lock down.',
     },
+    {
+      id: 'DEMO_8',
+      title: 'DEMO 8: Candidate Session Hijack Attempt',
+      desc: 'Duplicate login request from unauthorized terminal IP using active candidate identity.',
+      expected: 'Session concurrency lock triggered & HTTP 409 Conflict returned.',
+    },
+    {
+      id: 'DEMO_9',
+      title: 'DEMO 9: Unauthorized Result Publication',
+      desc: 'Unauthorized operator attempts to publish exam results prior to audit approval.',
+      expected: 'Result release blocked; 4-eyes audit sign-off required (HTTP 403).',
+    },
+    {
+      id: 'DEMO_10',
+      title: 'DEMO 10: Forged Certificate Checksum Scan',
+      desc: 'Third party submits forged certificate QR digest for verification.',
+      expected: 'RSA signature mismatch detected; Certificate marked INVALID.',
+    },
   ];
 
   const handleRunScenario = async (scenarioId: string) => {
@@ -76,16 +94,16 @@ export const AttackSimulatorView: React.FC = () => {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="glass-panel p-6 rounded-2xl border border-amber-500/40 flex items-center justify-between shadow-2xl bg-amber-950/10">
+      <div className="gov-panel p-6 border border-amber-500/40 flex items-center justify-between shadow-2xl bg-amber-950/10">
         <div className="flex items-center space-x-4">
-          <div className="p-3 bg-amber-500/20 border border-amber-500/40 rounded-xl text-amber-400 animate-pulse">
+          <div className="p-3 bg-amber-500/20 border border-amber-500/40 rounded text-amber-400 animate-pulse">
             <Zap className="w-8 h-8" />
           </div>
           <div>
             <div className="flex items-center space-x-3">
-              <h2 className="text-xl font-bold text-slate-100">INTERACTIVE ATTACK SIMULATION CONTROL ROOM</h2>
-              <span className="text-xs px-2.5 py-0.5 rounded-full font-mono bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold">
-                7 JUDGE DEMO SCENARIOS
+              <h2 className="text-xl font-bold font-mono text-slate-100">INTERACTIVE ATTACK SIMULATION CONTROL ROOM</h2>
+              <span className="text-xs px-2.5 py-0.5 rounded font-mono bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold">
+                10 SCENARIOS LIVE
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-1">

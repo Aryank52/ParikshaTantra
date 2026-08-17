@@ -19,6 +19,8 @@ import leakRoutes from './routes/leakRoutes';
 import auditRoutes from './routes/auditRoutes';
 import resultRoutes from './routes/resultRoutes';
 import simulatorRoutes from './routes/simulatorRoutes';
+import catalogRoutes from './routes/catalogRoutes';
+import registrationRoutes from './routes/registrationRoutes';
 
 const app = express();
 const server = http.createServer(app);
@@ -57,6 +59,8 @@ app.use('/api/leak', leakRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/results', resultRoutes);
 app.use('/api/simulator', simulatorRoutes);
+app.use('/api/catalog', catalogRoutes);
+app.use('/api/registration', registrationRoutes);
 
 // Initialize WebSockets
 WebSocketService.initialize(server);

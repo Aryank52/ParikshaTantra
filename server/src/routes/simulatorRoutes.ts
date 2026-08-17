@@ -148,6 +148,46 @@ router.post('/execute', async (req, res: Response) => {
       });
     }
 
+    case 'DEMO_8': {
+      // DEMO 8: Candidate Session Hijack / Duplicate Login Attempt
+      await AuditLedgerService.logEvent({
+        eventType: 'ATTACK_SIMULATION_SESSION_HIJACK',
+        actorId: 'ROGUE_TERMINAL_B12',
+        actorRole: 'CANDIDATE',
+        action: 'ATTACK SIMULATION: Attempted duplicate session start for active candidate CAND-2026-001',
+        ipAddress: '198.51.100.99',
+      });
+      return res.status(409).json({
+        scenario: 'DEMO 8: Candidate Session Hijack Attempt',
+        expectedBehavior: 'Duplicate login attempt blocked & Session concurrency lock triggered',
+        status: 'BLOCKED',
+        errorCode: 'CONCURRENT_SESSION_CONFLICT',
+        details: 'Candidate CAND-2026-001 is already active on Node 14B. Concurrent session request from IP 198.51.100.99 rejected.',
+      });
+    }
+
+    case 'DEMO_9': {
+      // DEMO 9: Unauthorized Result Publication Attempt
+      return res.status(403).json({
+        scenario: 'DEMO 9: Unauthorized Result Publication Attempt',
+        expectedBehavior: 'Result release blocked prior to dual 4-eyes forensic audit sign-off',
+        status: 'BLOCKED',
+        errorCode: 'AUDIT_SIGN_OFF_REQUIRED',
+        details: 'Result publication rejected. Dual 4-eyes audit signatures from Lead Auditor and Chief Controller are required.',
+      });
+    }
+
+    case 'DEMO_10': {
+      // DEMO 10: Forged Certificate QR Checksum Scan
+      return res.status(404).json({
+        scenario: 'DEMO 10: Forged Certificate Checksum Scan',
+        expectedBehavior: 'Verification engine flags signature mismatch and marks certificate INVALID',
+        status: 'INVALID_CERTIFICATE',
+        errorCode: 'SIGNATURE_VERIFICATION_FAILED',
+        details: 'QR checksum digest QR-FORGED-998877 does not match RSA public key registry. Forgery alert logged to SOC.',
+      });
+    }
+
     default:
       return res.status(400).json({ error: 'Unknown scenario ID' });
   }

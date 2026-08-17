@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Monitor, Clock, ShieldCheck, Wifi, CheckCircle2, Bookmark, Send, AlertOctagon, Lock, FileText, Download, UserCheck } from 'lucide-react';
+import { Monitor, Clock, ShieldCheck, Wifi, CheckCircle2, Bookmark, Send, AlertOctagon, Lock, FileText, Download, UserCheck, UserPlus, QrCode } from 'lucide-react';
 import { fetchApi } from '../services/api';
 import { Question } from '../types';
+import { CandidateRegistrationModal } from './CandidateRegistrationModal';
 
 export const CandidateCBT: React.FC = () => {
   const [selectedExamCode, setSelectedExamCode] = useState('EXAM-NEET-2026');
@@ -17,6 +18,9 @@ export const CandidateCBT: React.FC = () => {
   const [submissionResult, setSubmissionResult] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [isOfflineMode, setIsOfflineMode] = useState(false);
+
+  // Registration Modal State
+  const [showRegModal, setShowRegModal] = useState(false);
 
   // Admit Card Modal State
   const [showAdmitCard, setShowAdmitCard] = useState(false);
@@ -138,18 +142,28 @@ export const CandidateCBT: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Registration Modal */}
+      <CandidateRegistrationModal
+        isOpen={showRegModal}
+        onClose={() => setShowRegModal(false)}
+        onSuccess={(admitCard) => {
+          setAdmitCardData({ admitCard });
+          setShowAdmitCard(true);
+        }}
+      />
+
       {/* Session Header / State Indicator */}
-      <div className="glass-panel p-6 rounded-2xl border border-slate-800 flex items-center justify-between shadow-2xl">
+      <div className="gov-panel p-6 border border-slate-800 flex items-center justify-between shadow-2xl">
         <div className="flex items-center space-x-4">
-          <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl text-blue-400">
+          <div className="p-3 bg-blue-950 border border-blue-500/30 rounded text-blue-400">
             <Monitor className="w-8 h-8" />
           </div>
           <div>
             <div className="flex items-center space-x-3">
-              <h2 className="text-xl font-bold text-slate-100">
+              <h2 className="text-xl font-bold font-mono text-slate-100">
                 {sessionStatus === 'IN_PROGRESS' ? examTitle : 'Candidate Sandboxed CBT Engine'}
               </h2>
-              <span className="text-xs px-2.5 py-0.5 rounded-full font-mono bg-blue-500/10 text-blue-400 border border-blue-500/30 font-semibold">
+              <span className="text-xs px-2.5 py-0.5 rounded font-mono badge-active font-semibold">
                 NODE: DEV-DEL-T01 (Node 14B)
               </span>
             </div>
@@ -159,11 +173,19 @@ export const CandidateCBT: React.FC = () => {
           </div>
         </div>
 
-        {/* View Admit Card Button & Live Timer */}
-        <div className="flex items-center space-x-4">
+        {/* Actions & Live Timer */}
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setShowRegModal(true)}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold font-mono rounded flex items-center space-x-2 transition-all shadow-md"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Apply / Register New Exam</span>
+          </button>
+
           <button
             onClick={() => setShowAdmitCard(true)}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-blue-300 text-xs font-bold font-mono rounded-xl border border-slate-700 flex items-center space-x-2 transition-all shadow-md"
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-blue-300 text-xs font-bold font-mono rounded border border-slate-700 flex items-center space-x-2 transition-all shadow-md"
           >
             <FileText className="w-4 h-4 text-blue-400" />
             <span>View Admit Card</span>
@@ -171,14 +193,14 @@ export const CandidateCBT: React.FC = () => {
 
           {sessionStatus === 'IN_PROGRESS' && (
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl">
+              <div className="flex items-center space-x-2 bg-slate-950 border border-slate-800 px-4 py-2 rounded">
                 <Wifi className={`w-4 h-4 ${isOfflineMode ? 'text-amber-400 animate-bounce' : 'text-emerald-400'}`} />
                 <span className={`text-xs font-mono font-bold ${isOfflineMode ? 'text-amber-300' : 'text-emerald-300'}`}>
                   {isOfflineMode ? 'OFFLINE BUFFER ACTIVE' : 'ONLINE ENCRYPTED SYNC'}
                 </span>
               </div>
 
-              <div className="flex items-center space-x-2 bg-slate-900 border border-amber-500/40 px-5 py-2.5 rounded-xl font-mono text-amber-300 shadow-lg shadow-amber-500/10">
+              <div className="flex items-center space-x-2 bg-slate-950 border border-amber-500/40 px-5 py-2 rounded font-mono text-amber-300 shadow-lg">
                 <Clock className="w-5 h-5 text-amber-400 animate-spin" style={{ animationDuration: '6s' }} />
                 <span className="text-lg font-extrabold tracking-wider">{formatTime(timeLeftSeconds)}</span>
               </div>

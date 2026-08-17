@@ -91,3 +91,93 @@ export interface SecurityEvent {
   createdAt: string;
   centre?: { name: string; centreCode: string };
 }
+
+export interface ExamCatalogEntry {
+  id: string;
+  catalogCode: string;
+  title: string;
+  shortName: string;
+  authorityCode: string;
+  authorityName: string;
+  level: 'CENTRAL' | 'STATE' | 'DISTRICT';
+  category: string;
+  subCategory?: string;
+  state?: string;
+  mode: string;
+  frequency: string;
+  applicationStart: string;
+  applicationEnd: string;
+  examDate: string;
+  resultDate: string;
+  feeAmount: number;
+  minAge: number;
+  maxAge: number;
+  minEducation: string;
+  languagesJson: string;
+  syllabusOverview: string;
+  officialSourceUrl: string;
+  dataLastVerified: string;
+  representationType: 'OFFICIAL' | 'REFERENCE' | 'DEMO' | 'EXTERNAL';
+  isDemoData: boolean;
+}
+
+export interface StateMaster {
+  id: string;
+  code: string;
+  name: string;
+  capital: string;
+  type: string;
+  pscName: string;
+  districtCount: number;
+  totalCentres: number;
+  totalSeats: number;
+}
+
+export interface DistrictMaster {
+  id: string;
+  code: string;
+  name: string;
+  stateCode: string;
+  stateName: string;
+  headquarters: string;
+  seatingCapacity: number;
+  activeCentres: number;
+  connectivityScore: number;
+  dmOfficerName: string;
+}
+
+export interface CandidateApplication {
+  id: string;
+  applicationNumber: string;
+  candidateId: string;
+  examCatalogCode: string;
+  fullName: string;
+  email: string;
+  category: string;
+  dob: string;
+  qualification: string;
+  preferredCity1: string;
+  preferredCity2: string;
+  status: string;
+  feePaid: boolean;
+  createdAt: string;
+}
+
+export interface AdmitCard {
+  id: string;
+  rollNumber: string;
+  applicationNumber: string;
+  candidateName: string;
+  examTitle: string;
+  examCode: string;
+  category: string;
+  assignedCentreCode: string;
+  assignedCentreName: string;
+  assignedCity: string;
+  assignedLabNode: string;
+  reportingTime: string;
+  gateClosingTime: string;
+  digitalSignature: string;
+  qrChecksum: string;
+  createdAt: string;
+}

@@ -252,5 +252,136 @@ export async function seedDatabase() {
     metadata: { environment: 'DEMO_PROTOTYPE', citiesSeeded: 25, statesSeeded: 12 },
   });
 
+  // 10. Seed Exam Catalog Entries
+  const catalogData = [
+    { code: 'CAT-NEET-2026', title: 'National Eligibility cum Entrance Test (NEET UG 2026)', shortName: 'NEET UG 2026', authCode: 'NTA', authName: 'National Testing Agency', level: 'CENTRAL', cat: 'MEDICAL', state: 'ALL_INDIA', minAge: 17, maxAge: 25, minEdu: 'Class 12 Science', fee: 1700, url: 'https://neet.nta.nic.in' },
+    { code: 'CAT-UPSC-CSE-2026', title: 'Civil Services Examination (Prelims) 2026', shortName: 'UPSC Prelims 2026', authCode: 'UPSC', authName: 'Union Public Service Commission', level: 'CENTRAL', cat: 'RECRUITMENT', state: 'ALL_INDIA', minAge: 21, maxAge: 32, minEdu: 'Graduation', fee: 100, url: 'https://upsc.gov.in' },
+    { code: 'CAT-JEE-MAIN-2026', title: 'Joint Entrance Examination (JEE Main 2026)', shortName: 'JEE Main 2026', authCode: 'NTA', authName: 'National Testing Agency', level: 'CENTRAL', cat: 'ENGINEERING', state: 'ALL_INDIA', minAge: 17, maxAge: 25, minEdu: 'Class 12 Mathematics', fee: 1000, url: 'https://jeemain.nta.nic.in' },
+    { code: 'CAT-SSC-CGL-2026', title: 'Combined Graduate Level Examination (SSC CGL 2026)', shortName: 'SSC CGL 2026', authCode: 'SSC', authName: 'Staff Selection Commission', level: 'CENTRAL', cat: 'RECRUITMENT', state: 'ALL_INDIA', minAge: 18, maxAge: 30, minEdu: 'Graduation', fee: 100, url: 'https://ssc.gov.in' },
+    { code: 'CAT-IBPS-PO-2026', title: 'Probationary Officer Recruitment (IBPS PO XVI)', shortName: 'IBPS PO 2026', authCode: 'IBPS', authName: 'Institute of Banking Personnel Selection', level: 'CENTRAL', cat: 'BANKING', state: 'ALL_INDIA', minAge: 20, maxAge: 30, minEdu: 'Graduation', fee: 850, url: 'https://ibps.in' },
+    { code: 'CAT-MPSC-RAJ-2026', title: 'Maharashtra State Services Examination (MPSC Rajyaseva 2026)', shortName: 'MPSC Rajyaseva', authCode: 'MPSC', authName: 'Maharashtra Public Service Commission', level: 'STATE', cat: 'RECRUITMENT', state: 'Maharashtra', minAge: 19, maxAge: 38, minEdu: 'Graduation', fee: 524, url: 'https://mpsc.gov.in' },
+    { code: 'CAT-UPPSC-PCS-2026', title: 'UP Combined State / Upper Subordinate Services (PCS 2026)', shortName: 'UPPSC PCS', authCode: 'UPPSC', authName: 'Uttar Pradesh Public Service Commission', level: 'STATE', cat: 'RECRUITMENT', state: 'Uttar Pradesh', minAge: 21, maxAge: 40, minEdu: 'Graduation', fee: 125, url: 'https://uppsc.up.nic.in' },
+    { code: 'CAT-BPSC-70TH-2026', title: 'Bihar 70th Combined Competitive Examination (BPSC CCE)', shortName: 'BPSC 70th CCE', authCode: 'BPSC', authName: 'Bihar Public Service Commission', level: 'STATE', cat: 'RECRUITMENT', state: 'Bihar', minAge: 20, maxAge: 37, minEdu: 'Graduation', fee: 600, url: 'https://bpsc.bih.nic.in' },
+    { code: 'CAT-WBPSC-WBCS-2026', title: 'West Bengal Civil Service (Exe) Examination (WBCS 2026)', shortName: 'WBCS 2026', authCode: 'WBPSC', authName: 'West Bengal Public Service Commission', level: 'STATE', cat: 'RECRUITMENT', state: 'West Bengal', minAge: 21, maxAge: 36, minEdu: 'Graduation', fee: 210, url: 'https://wbpsc.gov.in' },
+    { code: 'CAT-KPSC-KAS-2026', title: 'Karnataka Administrative Services (KAS Gazetted Probationers)', shortName: 'KPSC KAS', authCode: 'KPSC', authName: 'Karnataka Public Service Commission', level: 'STATE', cat: 'RECRUITMENT', state: 'Karnataka', minAge: 21, maxAge: 38, minEdu: 'Graduation', fee: 500, url: 'https://kpsc.kar.nic.in' },
+    { code: 'CAT-TSPSC-GRP1-2026', title: 'Telangana Group 1 Services Examination (TGPSC 2026)', shortName: 'TGPSC Group 1', authCode: 'TSPSC', authName: 'Telangana Public Service Commission', level: 'STATE', cat: 'RECRUITMENT', state: 'Telangana', minAge: 18, maxAge: 46, minEdu: 'Graduation', fee: 320, url: 'https://tspsc.gov.in' },
+    { code: 'CAT-RPSC-RAS-2026', title: 'Rajasthan State & Subordinate Services (RAS/RTS Exam)', shortName: 'RPSC RAS 2026', authCode: 'RPSC', authName: 'Rajasthan Public Service Commission', level: 'STATE', cat: 'RECRUITMENT', state: 'Rajasthan', minAge: 21, maxAge: 40, minEdu: 'Graduation', fee: 600, url: 'https://rpsc.rajasthan.gov.in' }
+  ];
+
+  for (const item of catalogData) {
+    await prisma.examCatalogEntry.upsert({
+      where: { catalogCode: item.code },
+      update: {},
+      create: {
+        catalogCode: item.code,
+        title: item.title,
+        shortName: item.shortName,
+        authorityCode: item.authCode,
+        authorityName: item.authName,
+        level: item.level,
+        category: item.cat,
+        state: item.state,
+        mode: 'CBT',
+        frequency: 'ANNUAL',
+        applicationStart: new Date(),
+        applicationEnd: new Date(Date.now() + 30 * 86400000),
+        examDate: new Date(Date.now() + 60 * 86400000),
+        resultDate: new Date(Date.now() + 90 * 86400000),
+        feeAmount: item.fee,
+        minAge: item.minAge,
+        maxAge: item.maxAge,
+        minEducation: item.minEdu,
+        languagesJson: JSON.stringify(['ENGLISH', 'HINDI', 'MARATHI', 'BENGALI', 'TAMIL', 'TELUGU']),
+        syllabusOverview: 'Complete paper blueprint covering Core Subjects, Quant, Reasoning, General Knowledge and Aptitude.',
+        officialSourceUrl: item.url,
+        dataLastVerified: new Date(),
+        representationType: 'REFERENCE',
+        isDemoData: true,
+      }
+    });
+  }
+
+  // 11. Seed State & District Master Data
+  const statesList = [
+    { code: 'MH', name: 'Maharashtra', capital: 'Mumbai', type: 'STATE', psc: 'MPSC', dists: 36, centres: 185, seats: 95000 },
+    { code: 'UP', name: 'Uttar Pradesh', capital: 'Lucknow', type: 'STATE', psc: 'UPPSC', dists: 75, centres: 340, seats: 175000 },
+    { code: 'BR', name: 'Bihar', capital: 'Patna', type: 'STATE', psc: 'BPSC', dists: 38, centres: 160, seats: 82000 },
+    { code: 'WB', name: 'West Bengal', capital: 'Kolkata', type: 'STATE', psc: 'WBPSC', dists: 23, centres: 140, seats: 72000 },
+    { code: 'KA', name: 'Karnataka', capital: 'Bengaluru', type: 'STATE', psc: 'KPSC', dists: 31, centres: 155, seats: 80000 },
+    { code: 'TS', name: 'Telangana', capital: 'Hyderabad', type: 'STATE', psc: 'TSPSC', dists: 33, centres: 120, seats: 62000 },
+    { code: 'RJ', name: 'Rajasthan', capital: 'Jaipur', type: 'STATE', psc: 'RPSC', dists: 50, centres: 170, seats: 88000 },
+    { code: 'MP', name: 'Madhya Pradesh', capital: 'Bhopal', type: 'STATE', psc: 'MPPSC', dists: 55, centres: 150, seats: 78000 },
+    { code: 'TN', name: 'Tamil Nadu', capital: 'Chennai', type: 'STATE', psc: 'TNPSC', dists: 38, centres: 165, seats: 86000 },
+    { code: 'GJ', name: 'Gujarat', capital: 'Gandhinagar', type: 'STATE', psc: 'GPSC', dists: 33, centres: 130, seats: 68000 },
+    { code: 'DL', name: 'Delhi NCR', capital: 'New Delhi', type: 'UT', psc: 'NTA/UPSC', dists: 11, centres: 210, seats: 115000 },
+    { code: 'PB', name: 'Punjab', capital: 'Chandigarh', type: 'STATE', psc: 'PPSC', dists: 23, centres: 90, seats: 45000 }
+  ];
+
+  for (const st of statesList) {
+    await prisma.stateMaster.upsert({
+      where: { code: st.code },
+      update: {},
+      create: {
+        code: st.code,
+        name: st.name,
+        capital: st.capital,
+        type: st.type,
+        pscName: st.psc,
+        districtCount: st.dists,
+        totalCentres: st.centres,
+        totalSeats: st.seats,
+      }
+    });
+  }
+
+  // 12. Seed Admit Card & Application for Candidate
+  const appNumber = 'APP-2026-990123';
+  const rollNumber = '2026-NEET-889012';
+
+  await prisma.candidateApplication.upsert({
+    where: { applicationNumber: appNumber },
+    update: {},
+    create: {
+      applicationNumber: appNumber,
+      candidateId: 'CAND-2026-001',
+      examCatalogCode: 'CAT-NEET-2026',
+      fullName: 'Aarav Sharma',
+      email: 'aarav.sharma@nta.ac.in',
+      category: 'GENERAL',
+      dob: '2004-05-15',
+      qualification: 'Class 12 Senior Secondary (PCB)',
+      preferredCity1: 'Delhi NCR',
+      preferredCity2: 'Jaipur',
+      status: 'APPROVED',
+      feePaid: true,
+    }
+  });
+
+  const sigPayload = `${rollNumber}:${appNumber}:Aarav Sharma:NEET UG 2026:Terminal Node 14B`;
+  const digitalSig = CryptoService.signPayload(sigPayload);
+  const qrCode = `QR-NEET-2026-${CryptoService.hashContent(digitalSig).substring(0, 12).toUpperCase()}`;
+
+  await prisma.admitCard.upsert({
+    where: { rollNumber: rollNumber },
+    update: {},
+    create: {
+      rollNumber: rollNumber,
+      applicationNumber: appNumber,
+      candidateName: 'Aarav Sharma',
+      examTitle: 'National Eligibility cum Entrance Test (NEET UG 2026)',
+      examCode: 'EXAM-NEET-2026',
+      category: 'GENERAL',
+      assignedCentreCode: 'CENTRE-DELHI-01',
+      assignedCentreName: 'TCS iON Digital Zone iDZ 1, Dwarka Sector 14',
+      assignedCity: 'Delhi NCR',
+      assignedLabNode: 'Terminal Node 14B',
+      reportingTime: '08:00 AM IST',
+      gateClosingTime: '09:00 AM IST',
+      digitalSignature: digitalSig,
+      qrChecksum: qrCode,
+    }
+  });
+
   console.log('✅ Pan-India State & District Ecosystem Seed Completed Successfully!');
 }
+
