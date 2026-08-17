@@ -1,0 +1,261 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Organization {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  type        String   // CENTRAL, STATE, DISTRICT
+  description String?
+  createdAt   DateTime @default(now())
+
+  users       User[]
+  exams       Exam[]
+  centres     ExamCentre[]
+}
+
+model User {
+  id             String       @id @default(uuid())
+  username       String       @unique
+  email          String       @unique
+  passwordHash   String
+  fullName       String
+  role           String       // SUPER_ADMIN, NATIONAL_AUTHORITY, etc.
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  isMfaActive    Boolean      @default(true)
+  isLocked       Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  createdQuestions   Question[] @relation("QuestionCreator")
+  reviewedQuestions  Question[] @relation("QuestionReviewer")
+  approvedAQuestions Question[] @relation("QuestionApproverA")
+  approvedBQuestions Question[] @relation("QuestionApproverB")
+}
+
+model ExamCentre {
+  id                 String       @id @default(uuid())
+  centreCode         String       @unique
+  name               String
+  state              String
+  district           String
+  address            String
+  geolocation        String       // "lat,lng"
+  capacity           Int
+  status             String       @default("REGISTERED") // REGISTERED, VERIFIED, READY, ACTIVATED, etc.
+  connectivityStatus String       @default("ONLINE")     // ONLINE, DEGRADED, OFFLINE
+  securityStatus     String       @default("GREEN")      // GREEN, YELLOW, ORANGE, RED
+  organizationId     String?
+  organization       Organization? @relation(fields: [organizationId], references: [id])
+  createdAt          DateTime     @default(now())
+
+  devices            RegisteredDevice[]
+  candidates         Candidate[]
+  activations        CentreActivation[]
+  candidateSessions  CandidateSession[]
+  securityEvents     SecurityEvent[]
+}
+
+model RegisteredDevice {
+  id             String       @id @default(uuid())
+  deviceId       String       @unique
+  centreId       String
+  centre         ExamCentre   @relation(fields: [centreId], references: [id])
+  serialNumber   String
+  ipAddress      String
+  hardwareHash   String
+  status         String       @default("AUTHORIZED") // AUTHORIZED, DEAUTHORIZED, BLOCKED, OFFLINE
+  lastHeartbeat  DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+
+  candidateSessions CandidateSession[]
+}
+
+model Candidate {
+  id                 String       @id @default(uuid())
+  candidateCode      String       @unique
+  fullName           String
+  identityHash       String       // Cryptographic pseudonymized hash of Govt ID
+  email              String       @unique
+  allocatedCentreId  String?
+  allocatedCentre    ExamCentre?  @relation(fields: [allocatedCentreId], references: [id])
+  allocatedTerminalId String?
+  isVerifiedAtCentre Boolean      @default(false)
+  createdAt          DateTime     @default(now())
+
+  sessions           CandidateSession[]
+  submissions        Submission[]
+  certificates       Certificate[]
+}
+
+model Question {
+  id                String         @id @default(uuid())
+  questionCode      String         @unique
+  subject           String
+  topic             String
+  difficulty        String         // EASY, MEDIUM, HARD
+  language          String         @default("ENGLISH")
+  marks             Float          @default(1.0)
+  negativeMarks     Float          @default(0.25)
+  encryptedContent  String         // AES-256-GCM cipher string
+  iv                String
+  authTag           String
+  questionHash      String         // SHA-256 of canonical text
+  digitalSignature  String?        // Creator/Approver RSA signature
+  status            String         @default("DRAFT") // DRAFT, REVIEW, APPROVED, ENCRYPTED, etc.
+  
+  createdById       String
+  createdBy         User           @relation("QuestionCreator", fields: [createdById], references: [id])
+  reviewedById      String?
+  reviewedBy        User?          @relation("QuestionReviewer", fields: [reviewedById], references: [id])
+  approvedByIdA     String?
+  approvedByA       User?          @relation("QuestionApproverA", fields: [approvedByIdA], references: [id])
+  approvedByIdB     String?
+  approvedByB       User?          @relation("QuestionApproverB", fields: [approvedByIdB], references: [id])
+  
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}
+
+model Exam {
+  id                 String     @id @default(uuid())
+  examCode           String     @unique
+  title              String
+  description        String?
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id])
+  status             String     @default("SCHEDULED") // SCHEDULED, RELEASED, RUNNING, PAUSED, FROZEN, etc.
+  scheduledStart     DateTime
+  scheduledEnd       DateTime
+  durationMinutes    Int        @default(180)
+  totalMarks         Float      @default(100.0)
+  globalReleaseToken String?
+  releasedAt         DateTime?
+  createdAt          DateTime   @default(now())
+
+  blueprint          ExamBlueprint?
+  activations        CentreActivation[]
+  candidateSessions  CandidateSession[]
+  submissions        Submission[]
+  certificates       Certificate[]
+}
+
+model ExamBlueprint {
+  id                       String   @id @default(uuid())
+  examId                   String   @unique
+  exam                     Exam     @relation(fields: [examId], references: [id])
+  subjectDistributionJson String   // JSON string of rules
+  difficultyDistributionJson String
+  questionIdsJson          String   // Array of selected question IDs
+  signedChecksum           String
+  createdAt                DateTime @default(now())
+}
+
+model CentreActivation {
+  id              String     @id @default(uuid())
+  examId          String
+  exam            Exam       @relation(fields: [examId], references: [id])
+  centreId        String
+  centre          ExamCentre @relation(fields: [centreId], references: [id])
+  activationToken String     @unique
+  issuedAt        DateTime   @default(now())
+  expiresAt       DateTime
+  usedAt          DateTime?
+  isValid         Boolean    @default(true)
+}
+
+model CandidateSession {
+  id                     String                 @id @default(uuid())
+  sessionToken           String                 @unique
+  candidateId            String
+  candidate              Candidate              @relation(fields: [candidateId], references: [id])
+  examId                 String
+  exam                   Exam                   @relation(fields: [examId], references: [id])
+  centreId               String
+  centre                 ExamCentre             @relation(fields: [centreId], references: [id])
+  deviceId               String
+  device                 RegisteredDevice       @relation(fields: [deviceId], references: [id])
+  status                 String                 @default("LOBBY") // LOBBY, IN_PROGRESS, PAUSED, SUBMITTED, FROZEN
+  startedAt              DateTime?
+  endedAt                DateTime?
+  localAnswerBufferJson  String?                // Local offline sync buffer backup
+  createdAt              DateTime               @default(now())
+}
+
+model Submission {
+  id                   String    @id @default(uuid())
+  candidateId          String
+  candidate            Candidate @relation(fields: [candidateId], references: [id])
+  examId               String
+  exam                 Exam      @relation(fields: [examId], references: [id])
+  encryptedAnswersJson String
+  answerHash           String
+  digitalSignature     String
+  score                Float?
+  resultStatus         String    @default("PENDING") // PENDING, PASSED, FAILED, INVALIDATED
+  submittedAt          DateTime  @default(now())
+}
+
+model AuditEvent {
+  id             String   @id @default(uuid())
+  eventType      String
+  actorId        String
+  actorRole      String
+  organizationId String?
+  action         String
+  ipAddress      String
+  deviceId       String?
+  metadataJson   String?
+  previousHash   String
+  currentHash    String
+  createdAt      DateTime @default(now())
+}
+
+model SecurityEvent {
+  id             String      @id @default(uuid())
+  eventType      String
+  severity       String      @default("LOW") // LOW, MEDIUM, HIGH, CRITICAL
+  centreId       String?
+  centre         ExamCentre? @relation(fields: [centreId], references: [id])
+  candidateId    String?
+  deviceId       String?
+  riskScore      Float       @default(0.0)
+  detailsJson    String
+  status         String      @default("OPEN") // OPEN, INVESTIGATING, RESOLVED, FROZEN
+  createdAt      DateTime    @default(now())
+}
+
+model LeakEvidence {
+  id                String   @id @default(uuid())
+  evidenceCode      String   @unique
+  title             String
+  source            String   // SCREENSHOT, TELEGRAM, SOCIAL_MEDIA, PHYSICAL_PAPER
+  textContent       String
+  imageBase64       String?
+  matchedQuestionId String?
+  similarityScore   Float?
+  riskLevel         String   @default("UNKNOWN") // LOW, MEDIUM, HIGH, CRITICAL
+  submittedBy       String
+  status            String   @default("UNDER_INVESTIGATION")
+  createdAt         DateTime @default(now())
+}
+
+model Certificate {
+  id                  String    @id @default(uuid())
+  certificateNumber   String    @unique
+  candidateId         String
+  candidate           Candidate @relation(fields: [candidateId], references: [id])
+  examId              String
+  exam                Exam      @relation(fields: [examId], references: [id])
+  score               Float
+  percentile          Float
+  qrVerificationCode  String    @unique
+  signedHash          String
+  issuedAt            DateTime  @default(now())
+}
