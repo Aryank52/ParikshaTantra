@@ -72,8 +72,9 @@ export class CryptoService {
     const masterKey = Buffer.from(CONFIG.AES_MASTER_KEY, 'hex');
     const salt = Buffer.from(examId || 'PARIKSHATANTRA_GLOBAL_SALT', 'utf8');
     const info = Buffer.from(`QUESTION:${questionId}`, 'utf8');
-    return crypto.hkdfSync('sha256', masterKey, salt, info, 32);
+    return Buffer.from(crypto.hkdfSync('sha256', masterKey, salt, info, 32));
   }
+
 
   /**
    * Encrypts plaintext question using derived HKDF key if questionId and examId provided.
