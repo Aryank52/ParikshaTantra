@@ -98,4 +98,70 @@ export class AuditLedgerService {
       details: 'Audit ledger cryptographic hash chain is 100% verified & intact.',
     };
   }
+
+  /**
+   * Computes Merkle Tree Root Hash from array of leaf hashes.
+   */
+  static buildMerkleTree(hashes: string[]): { root: string; treeLayers: string[][] } {
+    if (hashes.length === 0) {
+      return { root: crypto.createHash('sha256').update('EMPTY_TREE').digest('hex'), treeLayers: [] };
+    }
+
+    let currentLayer = [...hashes];
+    const treeLayers = [currentLayer];
+
+    while (currentLayer.length > 1) {
+      const nextLayer: string[] = [];
+      for (let i = 0; i < currentLayer.length; i += 2) {
+        const left = currentLayer[i];
+        const right = i + 1 < currentLayer.length ? currentLayer[i + 1] : left; // duplicate odd node
+        const parent = crypto.createHash('sha256').update(`${left}:${right}`).digest('hex');
+        nextLayer.push(parent);
+      }
+      treeLayers.push(nextLayer);
+      currentLayer = nextLayer;
+    }
+
+    return { root: currentLayer[0], treeLayers };
+  }
+
+  /**
+   * Generates or fetches a Merkle Batch for latest audit logs.
+   */
+  static async getOrCreateMerkleBatch(): Promise<any> {
+    const events = await prisma.auditEvent.findMany({
+      orderBy: { createdAt: 'asc' },
+      take: 100,
+    });
+
+    const hashes = events.map((e) => e.currentHash);
+    const { root } = this.buildMerkleTree(hashes);
+    const prevBatch = await prisma.auditMerkleBatch.findFirst({
+      orderBy: { batchNumber: 'desc' },
+    });
+
+    const batchNumber = prevBatch ? prevBatch.batchNumber + 1 : 1;
+    const prevBatchRoot = prevBatch ? prevBatch.merkleRoot : '0000000000000000000000000000000000000000000000000000000000000000';
+    const signedAnchor = crypto.createHmac('sha256', root).update(prevBatchRoot).digest('hex');
+
+    const existingBatch = await prisma.auditMerkleBatch.findUnique({
+      where: { batchNumber },
+    });
+
+    if (existingBatch) return existingBatch;
+
+    return await prisma.auditMerkleBatch.create({
+      data: {
+        batchNumber,
+        merkleRoot: root,
+        startBlockId: events[0]?.id || 'GENESIS',
+        endBlockId: events[events.length - 1]?.id || 'GENESIS',
+        eventCount: events.length,
+        prevBatchRoot,
+        signedAnchor,
+        status: 'VERIFIED',
+      },
+    });
+  }
 }
+

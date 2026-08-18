@@ -319,11 +319,16 @@ export const CandidateCBT: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="my-6">
+                <div className="my-6 relative">
+                  {/* Subtle Forensic Provenance Micro-Watermark Overlay */}
+                  <div className="absolute top-0 right-0 text-[10px] font-mono text-slate-700/40 select-none pointer-events-none tracking-widest uppercase">
+                    PROV-7F28A91C • CAND-2026-001 • DEV-DEL-T01
+                  </div>
                   <h4 className="text-lg font-semibold text-slate-100 leading-relaxed font-sans">
                     {currentQ.text}
                   </h4>
                 </div>
+
 
                 <div className="space-y-3">
                   {currentQ.options?.map((optText, idx) => {

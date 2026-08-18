@@ -23,6 +23,8 @@ import simulatorRoutes from './routes/simulatorRoutes';
 import catalogRoutes from './routes/catalogRoutes';
 import registrationRoutes from './routes/registrationRoutes';
 import controlTowerRoutes from './routes/controlTowerRoutes';
+import paperRoutes from './routes/paperRoutes';
+import hardwareCheckRoutes from './routes/hardwareCheckRoutes';
 
 const app = express();
 const server = http.createServer(app);
@@ -64,6 +66,9 @@ app.use('/api/simulator', simulatorRoutes);
 app.use('/api/catalog', catalogRoutes);
 app.use('/api/registration', registrationRoutes);
 app.use('/api/control-tower', controlTowerRoutes);
+app.use('/api/paper', paperRoutes);
+app.use('/api/hardware-check', hardwareCheckRoutes);
+
 
 
 // Initialize WebSockets

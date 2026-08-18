@@ -23,6 +23,9 @@ export type ViewType =
   | 'CONTROL_TOWER'
   | 'CBT_PORTAL'
   | 'CANDIDATE_ARRIVAL'
+  | 'DEVICE_CHECK'
+  | 'HARDWARE_CHECK'
+  | 'ANSWER_SHEETS'
   | 'AUTHORITY_PORTAL'
   | 'STATE_DISTRICT'
   | 'CENTRE_PORTAL'
@@ -49,7 +52,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView }) =
     { id: 'SYSTEM_STATUS', label: 'Public System Status', icon: Activity, category: 'PUBLIC', badge: 'HEALTH' },
     { id: 'CONTROL_TOWER', label: 'Exam Day Control Tower', icon: Radio, category: 'OPERATIONS', badge: 'LIVE COMMAND' },
     { id: 'CANDIDATE_ARRIVAL', label: 'Candidate Arrival Desk', icon: UserX, category: 'OPERATIONS', badge: 'ENTRY' },
+    { id: 'DEVICE_CHECK', label: 'Candidate Hardware Test', icon: Monitor, category: 'OPERATIONS', badge: 'DIAGNOSTIC' },
     { id: 'CENTRE_GATEWAY', label: 'Virtual Centre Gateway', icon: Building2, category: 'OPERATIONS', badge: 'NODE' },
+    { id: 'HARDWARE_CHECK', label: 'Centre Lab Hardware', icon: Building2, category: 'OPERATIONS', badge: 'LAB GRID' },
+    { id: 'ANSWER_SHEETS', label: 'Paper Answer Sheets', icon: FileCheck2, category: 'OPERATIONS', badge: 'OMR SCAN' },
     { id: 'TERMINAL_MANAGEMENT', label: 'Terminal & Lab Control', icon: Monitor, category: 'OPERATIONS', badge: 'INVIGILATOR' },
     { id: 'CBT_PORTAL', label: 'Candidate CBT Engine', icon: Monitor, category: 'EXAMINATION', badge: 'JIT' },
     { id: 'AUTHORITY_PORTAL', label: 'Question Vault & Blueprint', icon: Vault, category: 'AUTHORITY' },
@@ -63,6 +69,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView }) =
     { id: 'CERTIFICATE_VERIFY', label: 'QR Certificate Verification', icon: QrCode, category: 'VERIFICATION', badge: 'PUBLIC' },
     { id: 'ATTACK_SIMULATOR', label: 'Attack Simulator (Judge Demo)', icon: Zap, category: 'DEMO', badge: '10 SCENARIOS' },
   ];
+
 
   const categories = ['PUBLIC', 'OPERATIONS', 'EXAMINATION', 'AUTHORITY', 'SECURITY', 'FORENSICS', 'VERIFICATION', 'DEMO'];
 

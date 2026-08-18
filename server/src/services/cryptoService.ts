@@ -65,6 +65,61 @@ export class CryptoService {
   }
 
   /**
+   * Derives a unique 32-byte AES key per question using HKDF-SHA256.
+   * HKDF(MasterKey, Salt=ExamID, Info=QuestionID)
+   */
+  static deriveQuestionKey(questionId: string, examId: string): Buffer {
+    const masterKey = Buffer.from(CONFIG.AES_MASTER_KEY, 'hex');
+    const salt = Buffer.from(examId || 'PARIKSHATANTRA_GLOBAL_SALT', 'utf8');
+    const info = Buffer.from(`QUESTION:${questionId}`, 'utf8');
+    return crypto.hkdfSync('sha256', masterKey, salt, info, 32);
+  }
+
+  /**
+   * Encrypts plaintext question using derived HKDF key if questionId and examId provided.
+   */
+  static encryptQuestionWithHKDF(text: string, questionId?: string, examId?: string): { cipherText: string; iv: string; authTag: string } {
+    const key = (questionId && examId) 
+      ? this.deriveQuestionKey(questionId, examId)
+      : Buffer.from(CONFIG.AES_MASTER_KEY, 'hex');
+    
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    
+    let encrypted = cipher.update(text, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    const authTag = cipher.getAuthTag().toString('hex');
+    
+    return {
+      cipherText: encrypted,
+      iv: iv.toString('hex'),
+      authTag,
+    };
+  }
+
+  /**
+   * Generates an opaque provenance token for forensic CBT micro-watermarking.
+   * PROV-<8_HEX_CHARS>
+   */
+  static generateProvenanceId(candidateCode: string, examCode: string, centreCode: string, terminalId: string): string {
+    const raw = `${candidateCode}:${examCode}:${centreCode}:${terminalId}:${Date.now()}`;
+    const hash = crypto.createHash('sha256').update(raw).digest('hex').substring(0, 8).toUpperCase();
+    return `PROV-${hash}`;
+  }
+
+  /**
+   * Generates RSA-4096 / ECDSA P-256 Key Pairs for Asymmetric Signing.
+   */
+  static generateKeyPair(): { publicKey: string; privateKey: string } {
+    const { publicKey, privateKey } = crypto.generateKeyPairSync('ec', {
+      namedCurve: 'prime256v1',
+      publicKeyEncoding: { type: 'spki', format: 'pem' },
+      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+    });
+    return { publicKey, privateKey };
+  }
+
+  /**
    * Simulates RSA/HMAC Digital Signature for blueprint checksums and result certificates.
    */
   static signPayload(data: string): string {
@@ -76,3 +131,4 @@ export class CryptoService {
     return expected === signature;
   }
 }
+

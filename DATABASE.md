@@ -18,3 +18,7 @@
 13. `SecurityEvent`: SOC security alerts and threat scores.
 14. `LeakEvidence`: Investigated leak evidence with similarity scores.
 15. `Certificate`: QR-verifiable digitally signed result certificates.
+16. `AuditMerkleBatch`: Merkle tree root batch commitments with O(log N) proof paths.
+17. `AnswerSheetScan`: Scanned answer sheet registrations & OMR evaluation logs for PAPER & HYBRID exam modes.
+18. `HardwareCheckLog`: Pre-exam diagnostic camera, mic, screen, and storage hardware logs.
+

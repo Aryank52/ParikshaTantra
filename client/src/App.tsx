@@ -22,6 +22,9 @@ import { TerminalManagementView } from './views/TerminalManagementView';
 import { CandidateArrivalView } from './views/CandidateArrivalView';
 import { LeakForensicsWorkbench } from './views/LeakForensicsWorkbench';
 import { StatusView } from './views/StatusView';
+import { DeviceCheckView } from './views/DeviceCheckView';
+import { HardwareCheckView } from './views/HardwareCheckView';
+import { AnswerSheetUploadView } from './views/AnswerSheetUploadView';
 
 export const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewType>('LANDING');
@@ -36,6 +39,12 @@ export const AppContent: React.FC = () => {
         return <ExamDayControlTower />;
       case 'CANDIDATE_ARRIVAL':
         return <CandidateArrivalView />;
+      case 'DEVICE_CHECK':
+        return <DeviceCheckView />;
+      case 'HARDWARE_CHECK':
+        return <HardwareCheckView />;
+      case 'ANSWER_SHEETS':
+        return <AnswerSheetUploadView />;
       case 'CENTRE_GATEWAY':
         return <CentreGatewayView />;
       case 'TERMINAL_MANAGEMENT':
@@ -68,6 +77,7 @@ export const AppContent: React.FC = () => {
         return <NationalLandingPage onNavigate={setCurrentView} />;
     }
   };
+
 
 
   return (
