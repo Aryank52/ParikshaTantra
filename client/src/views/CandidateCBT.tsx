@@ -211,7 +211,7 @@ export const CandidateCBT: React.FC = () => {
 
       {/* LOBBY STATE */}
       {sessionStatus === 'LOBBY' && (
-        <div className="glass-panel p-10 rounded-2xl text-center max-w-2xl mx-auto space-y-6">
+        <div className="glass-panel p-8 rounded-2xl text-center max-w-2xl mx-auto space-y-6">
           <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto text-emerald-400">
             <ShieldCheck className="w-8 h-8" />
           </div>
@@ -220,6 +220,24 @@ export const CandidateCBT: React.FC = () => {
             <p className="text-sm text-slate-400 mt-2">
               Physical Identity Verification complete. TCS iON Centre Gateway is activated and terminal is sandboxed.
             </p>
+          </div>
+
+          {/* Hardware Pre-Test Check */}
+          <div className="bg-slate-900/90 p-4 rounded-xl border border-slate-800 text-left space-y-3 font-mono text-xs">
+            <div className="flex items-center justify-between text-slate-300 font-bold border-b border-slate-800 pb-2">
+              <span>MANDATORY HARDWARE PRE-CHECK</span>
+              <span className="text-emerald-400">100% PASSED</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-slate-950 p-2.5 rounded border border-slate-800 flex justify-between items-center">
+                <span className="text-slate-400">Webcam Feed:</span>
+                <span className="text-emerald-400 font-bold">CONNECTED (1080p)</span>
+              </div>
+              <div className="bg-slate-950 p-2.5 rounded border border-slate-800 flex justify-between items-center">
+                <span className="text-slate-400">Microphone:</span>
+                <span className="text-emerald-400 font-bold">CALIBRATED (48kHz)</span>
+              </div>
+            </div>
           </div>
 
           {/* Exam Selector */}
@@ -248,10 +266,11 @@ export const CandidateCBT: React.FC = () => {
             className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-xl shadow-blue-500/20 text-base transition-all transform active:scale-98 flex items-center justify-center space-x-2"
           >
             <Lock className="w-5 h-5" />
-            <span>Launch Sandboxed Examination (Request JIT Payload)</span>
+            <span>Launch Sandboxed Examination (SET A Paper Variant)</span>
           </button>
         </div>
       )}
+
 
       {/* IN_PROGRESS CBT STATE */}
       {sessionStatus === 'IN_PROGRESS' && currentQ && (

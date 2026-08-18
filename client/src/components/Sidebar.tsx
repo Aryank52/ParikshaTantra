@@ -13,21 +13,29 @@ import {
   Zap,
   QrCode,
   ShieldAlert,
+  Radio,
 } from 'lucide-react';
+
 
 export type ViewType =
   | 'LANDING'
   | 'EXAM_CATALOG'
+  | 'CONTROL_TOWER'
   | 'CBT_PORTAL'
+  | 'CANDIDATE_ARRIVAL'
   | 'AUTHORITY_PORTAL'
   | 'STATE_DISTRICT'
   | 'CENTRE_PORTAL'
+  | 'CENTRE_GATEWAY'
+  | 'TERMINAL_MANAGEMENT'
   | 'SOC_OPERATIONS'
   | 'LEAK_DETECTION'
+  | 'LEAK_FORENSICS'
   | 'INSIDER_THREAT'
   | 'AUDIT_LEDGER'
   | 'ATTACK_SIMULATOR'
-  | 'CERTIFICATE_VERIFY';
+  | 'CERTIFICATE_VERIFY'
+  | 'SYSTEM_STATUS';
 
 interface SidebarProps {
   currentView: ViewType;
@@ -38,11 +46,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView }) =
   const navItems: { id: ViewType; label: string; icon: any; category: string; badge?: string }[] = [
     { id: 'LANDING', label: 'National Landing Portal', icon: Globe, category: 'PUBLIC', badge: 'HOME' },
     { id: 'EXAM_CATALOG', label: 'Public Exam Catalog', icon: BookOpen, category: 'PUBLIC', badge: '12 EXAMS' },
+    { id: 'SYSTEM_STATUS', label: 'Public System Status', icon: Activity, category: 'PUBLIC', badge: 'HEALTH' },
+    { id: 'CONTROL_TOWER', label: 'Exam Day Control Tower', icon: Radio, category: 'OPERATIONS', badge: 'LIVE COMMAND' },
+    { id: 'CANDIDATE_ARRIVAL', label: 'Candidate Arrival Desk', icon: UserX, category: 'OPERATIONS', badge: 'ENTRY' },
+    { id: 'CENTRE_GATEWAY', label: 'Virtual Centre Gateway', icon: Building2, category: 'OPERATIONS', badge: 'NODE' },
+    { id: 'TERMINAL_MANAGEMENT', label: 'Terminal & Lab Control', icon: Monitor, category: 'OPERATIONS', badge: 'INVIGILATOR' },
     { id: 'CBT_PORTAL', label: 'Candidate CBT Engine', icon: Monitor, category: 'EXAMINATION', badge: 'JIT' },
     { id: 'AUTHORITY_PORTAL', label: 'Question Vault & Blueprint', icon: Vault, category: 'AUTHORITY' },
     { id: 'STATE_DISTRICT', label: 'State & District Governance', icon: Landmark, category: 'AUTHORITY', badge: '28 STATES' },
     { id: 'CENTRE_PORTAL', label: 'Centre Network & Activation', icon: Building2, category: 'AUTHORITY' },
     { id: 'SOC_OPERATIONS', label: 'Security Command Centre', icon: Activity, category: 'SECURITY', badge: 'SOC' },
+    { id: 'LEAK_FORENSICS', label: 'AI Forensic Leak Workbench', icon: FileSearch, category: 'SECURITY', badge: 'GEMINI AI' },
     { id: 'LEAK_DETECTION', label: 'Semantic Leak Matcher', icon: FileSearch, category: 'SECURITY', badge: 'AI' },
     { id: 'INSIDER_THREAT', label: 'AI Threat & Anomaly Engine', icon: UserX, category: 'SECURITY', badge: 'AI' },
     { id: 'AUDIT_LEDGER', label: 'Hash-Chain Audit Verifier', icon: FileCheck2, category: 'FORENSICS' },
@@ -50,7 +64,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView }) =
     { id: 'ATTACK_SIMULATOR', label: 'Attack Simulator (Judge Demo)', icon: Zap, category: 'DEMO', badge: '10 SCENARIOS' },
   ];
 
-  const categories = ['PUBLIC', 'EXAMINATION', 'AUTHORITY', 'SECURITY', 'FORENSICS', 'VERIFICATION', 'DEMO'];
+  const categories = ['PUBLIC', 'OPERATIONS', 'EXAMINATION', 'AUTHORITY', 'SECURITY', 'FORENSICS', 'VERIFICATION', 'DEMO'];
+
 
   return (
     <aside className="w-64 bg-slate-950 border-r border-slate-800 p-3 flex flex-col justify-between h-[calc(100vh-65px)] font-sans overflow-y-auto">

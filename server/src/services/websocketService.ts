@@ -55,7 +55,8 @@ export class WebSocketService {
    * Broadcasts an event to all or specific client types.
    */
   static broadcast(event: {
-    type: 'EXAM_RELEASED' | 'EXAM_PAUSED' | 'EXAM_RESUMED' | 'EXAM_FROZEN' | 'SECURITY_ALERT' | 'SYSTEM_NOTICE' | 'DEVICE_BLOCKED';
+    type: 'EXAM_RELEASED' | 'EXAM_PAUSED' | 'EXAM_RESUMED' | 'EXAM_FROZEN' | 'SECURITY_ALERT' | 'SYSTEM_NOTICE' | 'DEVICE_BLOCKED' | 'EXAM_STATE_CHANGED';
+
     payload: any;
     targetCentreId?: string;
     targetCandidateId?: string;

@@ -41,8 +41,8 @@ router.post(
       };
     });
 
-    // Run TF-IDF & Cosine Similarity Match
-    const matches = LeakDetectionService.analyzeLeak(rawText, vaultPrepared);
+    // Run TF-IDF & Gemini AI Semantic Leak Analysis Pipeline
+    const { matches, aiAnalysisReport } = await LeakDetectionService.analyzeLeakAsync(rawText, vaultPrepared);
     const topMatch = matches.length > 0 ? matches[0] : null;
 
     const evidenceCode = `EVID-${Math.floor(10000 + Math.random() * 90000)}`;
@@ -66,8 +66,8 @@ router.post(
       eventType: 'LEAK_EVIDENCE_ANALYZED',
       actorId: req.user!.userId,
       actorRole: req.user!.role,
-      action: `Uploaded evidence ${evidenceCode}. Top match score: ${topMatch ? topMatch.similarityScore : 0}% (${topMatch?.questionCode})`,
-      metadata: { evidenceId: evidence.id, matchedQuestionCode: topMatch?.questionCode, score: topMatch?.similarityScore },
+      action: `Uploaded evidence ${evidenceCode}. Top match score: ${topMatch ? topMatch.similarityScore : 0}% (${topMatch?.questionCode || 'NONE'})`,
+      metadata: { evidenceId: evidence.id, matchedQuestionCode: topMatch?.questionCode, score: topMatch?.similarityScore, aiAnalysisReport },
     });
 
     return res.json({
@@ -75,8 +75,10 @@ router.post(
       evidence,
       topMatch,
       allMatches: matches,
+      aiAnalysisReport,
     });
   }
+
 );
 
 // GET /api/leak/evidence - List all evidence records

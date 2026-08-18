@@ -171,4 +171,39 @@ router.post(
   }
 );
 
+// POST /api/exams/:id/transition - Transition operational lifecycle state
+router.post(
+  '/:id/transition',
+  authenticateJwt,
+  authorizeRoles('SUPER_ADMIN', 'NATIONAL_AUTHORITY', 'EXAM_CONTROLLER', 'SECURITY_OFFICER'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    const examId = req.params.id as string;
+    const { targetState, reason } = req.body;
+
+    if (!targetState) {
+      return res.status(400).json({ error: 'Missing targetState parameter' });
+    }
+
+    const { ExamLifecycleService } = await import('../services/examLifecycleService');
+    const result = await ExamLifecycleService.transitionState({
+      examId,
+      targetState,
+      actorUserId: req.user!.userId,
+      actorRole: req.user!.role,
+      reason,
+    });
+
+    if (!result.success) {
+      return res.status(400).json({
+        error: 'TRANSITION_DENIED',
+        message: result.message,
+        violations: result.violations,
+      });
+    }
+
+    return res.json(result);
+  }
+);
+
 export default router;
+

@@ -1,7 +1,8 @@
 import express from 'express';
 import http from 'http';
 import cors from 'cors';
-import { CONFIG } from './config';
+import { CONFIG, validateSecrets } from './config';
+
 import { WebSocketService } from './services/websocketService';
 import { seedDatabase } from './seed';
 
@@ -21,6 +22,7 @@ import resultRoutes from './routes/resultRoutes';
 import simulatorRoutes from './routes/simulatorRoutes';
 import catalogRoutes from './routes/catalogRoutes';
 import registrationRoutes from './routes/registrationRoutes';
+import controlTowerRoutes from './routes/controlTowerRoutes';
 
 const app = express();
 const server = http.createServer(app);
@@ -61,6 +63,8 @@ app.use('/api/results', resultRoutes);
 app.use('/api/simulator', simulatorRoutes);
 app.use('/api/catalog', catalogRoutes);
 app.use('/api/registration', registrationRoutes);
+app.use('/api/control-tower', controlTowerRoutes);
+
 
 // Initialize WebSockets
 WebSocketService.initialize(server);
@@ -71,6 +75,8 @@ server.listen(CONFIG.PORT, async () => {
   console.log(`🛡️  PARIKSHATANTRA SECURE SERVER RUNNING ON PORT ${CONFIG.PORT}`);
   console.log(`🔗 WebSockets Active at ws://localhost:${CONFIG.PORT}/ws`);
   console.log(`=======================================================`);
+  validateSecrets();
+
 
   try {
     await seedDatabase();

@@ -25,3 +25,11 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
 
   return data;
 }
+
+export const api = {
+  get: (endpoint: string) => fetchApi(endpoint, { method: 'GET' }),
+  post: (endpoint: string, body?: any) => fetchApi(endpoint, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
+  put: (endpoint: string, body?: any) => fetchApi(endpoint, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
+  delete: (endpoint: string) => fetchApi(endpoint, { method: 'DELETE' }),
+};
+

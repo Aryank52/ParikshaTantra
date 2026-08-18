@@ -1,9 +1,12 @@
+import { CONFIG } from '../config';
+
 export interface RiskAnalysisResult {
   riskScore: number; // 0 to 100
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   reasons: string[];
   recommendedAction: 'NONE' | 'MONITOR' | 'LOCK_SESSION' | 'FREEZE_EXAM';
 }
+
 
 export class ThreatEngineService {
   /**
@@ -90,4 +93,53 @@ export class ThreatEngineService {
       recommendedAction,
     };
   }
+
+  /**
+   * AI-Enriched Threat Analysis using Google Gemini API.
+   */
+  static async analyzeBehaviorWithAI(params: Parameters<typeof ThreatEngineService.analyzeUserBehavior>[0]): Promise<RiskAnalysisResult> {
+    const baseResult = this.analyzeUserBehavior(params);
+    if (CONFIG.GEMINI_API_KEY) {
+      try {
+        const prompt = `You are ParikshaTantra SOC Threat Engine AI Advisor.
+Analyze this user security access profile:
+Actor Role: ${params.actorRole}
+Action: ${params.action}
+Accessed Questions Count: ${params.accessedQuestionIdsCount || 0}
+Request Count / Min: ${params.requestCountInLastMinute || 0}
+Access Hour: ${params.accessHour}
+Outside Assigned Centre: ${params.isOutsideAssignedCentre ? 'YES' : 'NO'}
+
+Rule-based Risk Score: ${baseResult.riskScore}/100 (${baseResult.riskLevel})
+
+Provide a 1-sentence AI executive threat summary for the security command dashboard.
+Respond ONLY with valid JSON:
+{
+  "aiSummary": "Executive AI threat evaluation."
+}`;
+
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${CONFIG.GEMINI_API_KEY}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+        });
+
+        if (res.ok) {
+          const data = (await res.json()) as any;
+          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          const match = text.match(/\{[\s\S]*\}/);
+          if (match) {
+            const parsed = JSON.parse(match[0]);
+            if (parsed.aiSummary) {
+              baseResult.reasons.unshift(`AI SOC Analysis: ${parsed.aiSummary}`);
+            }
+          }
+        }
+      } catch (err) {
+        // Fallback silently to rule-based result
+      }
+    }
+    return baseResult;
+  }
 }
+

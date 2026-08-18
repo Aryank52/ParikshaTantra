@@ -43,4 +43,40 @@ router.get('/admit-card/:candidateCode', authenticateJwt, async (req: Authentica
   });
 });
 
+// POST /api/candidate/verify-attendance - Physical Centre Candidate Verification & Node Assignment
+router.post('/verify-attendance', authenticateJwt, async (req: AuthenticatedRequest, res: Response) => {
+  const { candidateCode, centreId, terminalNode, status } = req.body;
+
+  if (!candidateCode) {
+    return res.status(400).json({ error: 'Missing candidateCode' });
+  }
+
+  const candidate = await prisma.candidate.findUnique({ where: { candidateCode } });
+  if (!candidate) return res.status(404).json({ error: 'Candidate not found' });
+
+  const updatedCandidate = await prisma.candidate.update({
+    where: { candidateCode },
+    data: {
+      isVerifiedAtCentre: true,
+      allocatedCentreId: centreId || candidate.allocatedCentreId,
+      allocatedTerminalId: terminalNode || candidate.allocatedTerminalId || 'Terminal Node 14B',
+    },
+  });
+
+  const { AuditLedgerService } = await import('../services/auditLedgerService');
+  await AuditLedgerService.logEvent({
+    eventType: 'CANDIDATE_CENTRE_VERIFIED',
+    actorId: req.user!.userId,
+    actorRole: req.user!.role,
+    action: `Verified candidate ${candidate.fullName} (${candidate.candidateCode}) at Centre. Seat Assigned: ${updatedCandidate.allocatedTerminalId}`,
+    metadata: { candidateCode, centreId, terminalNode, status: status || 'VERIFIED' },
+  });
+
+  return res.json({
+    message: `Candidate ${candidate.fullName} VERIFIED! Terminal Node ${updatedCandidate.allocatedTerminalId} assigned.`,
+    candidate: updatedCandidate,
+  });
+});
+
 export default router;
+

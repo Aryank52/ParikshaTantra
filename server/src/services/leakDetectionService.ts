@@ -1,3 +1,5 @@
+import { CONFIG } from '../config';
+
 export interface MatchResult {
   questionId: string;
   questionCode: string;
@@ -5,6 +7,7 @@ export interface MatchResult {
   similarityScore: number; // 0.0 to 100.0
   matchedSnippet: string;
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  aiExplanation?: string;
 }
 
 export class LeakDetectionService {
@@ -74,4 +77,79 @@ export class LeakDetectionService {
     // Sort by highest similarity score first
     return results.sort((a, b) => b.similarityScore - a.similarityScore);
   }
+
+  /**
+   * Deep Gemini AI semantic leak analysis evaluating paraphrasing and cross-lingual conceptual matches.
+   */
+  static async analyzeLeakAsync(
+    evidenceText: string,
+    vaultQuestions: Array<{ id: string; questionCode: string; subject: string; plainTextContent: string }>
+  ): Promise<{ matches: MatchResult[]; aiAnalysisReport?: string }> {
+    const baseMatches = this.analyzeLeak(evidenceText, vaultQuestions);
+
+    if (CONFIG.GEMINI_API_KEY && vaultQuestions.length > 0) {
+      try {
+        const topCandidates = vaultQuestions.slice(0, 10);
+        const prompt = `You are ParikshaTantra AI Leak Detection Engine for Indian National Examinations.
+Analyze the following leaked evidence snippet against candidate question vault items for semantic similarity, paraphrasing, conceptual translation, or direct paper leak.
+
+Leaked Evidence Text: "${evidenceText}"
+
+Vault Questions:
+${topCandidates.map((q, idx) => `[${idx + 1}] Code: ${q.questionCode}, Subject: ${q.subject}, Content: "${q.plainTextContent}"`).join('\n')}
+
+Respond ONLY with valid JSON in the following schema:
+{
+  "topMatchCode": "QUESTION_CODE_OR_NONE",
+  "similarityScore": 85,
+  "riskLevel": "CRITICAL",
+  "aiExplanation": "Detailed explanation of semantic similarity, paraphrased concepts, or keyword matches."
+}`;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${CONFIG.GEMINI_API_KEY}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+          }),
+        });
+
+        if (response.ok) {
+          const data = (await response.json()) as any;
+          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          const jsonMatch = text.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (parsed.topMatchCode && parsed.topMatchCode !== 'NONE') {
+              const matchedQ = vaultQuestions.find((q) => q.questionCode === parsed.topMatchCode);
+              if (matchedQ) {
+                const aiMatch: MatchResult = {
+                  questionId: matchedQ.id,
+                  questionCode: matchedQ.questionCode,
+                  subject: matchedQ.subject,
+                  similarityScore: Math.max(parsed.similarityScore || 50, baseMatches[0]?.similarityScore || 0),
+                  matchedSnippet: matchedQ.plainTextContent.substring(0, 120) + '...',
+                  riskLevel: parsed.riskLevel || 'HIGH',
+                  aiExplanation: parsed.aiExplanation || 'Gemini AI semantic match confirmed.',
+                };
+
+                const existingIdx = baseMatches.findIndex((m) => m.questionCode === matchedQ.questionCode);
+                if (existingIdx >= 0) {
+                  baseMatches[existingIdx] = { ...baseMatches[existingIdx], ...aiMatch };
+                } else {
+                  baseMatches.unshift(aiMatch);
+                }
+              }
+            }
+            return { matches: baseMatches, aiAnalysisReport: parsed.aiExplanation };
+          }
+        }
+      } catch (err) {
+        console.warn('Gemini AI Leak Engine fallback to rule-based similarity:', err);
+      }
+    }
+
+    return { matches: baseMatches };
+  }
 }
+

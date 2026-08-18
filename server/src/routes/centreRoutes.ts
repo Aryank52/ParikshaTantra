@@ -157,4 +157,17 @@ router.post(
   }
 );
 
+// GET /api/centres/:id/readiness - Run automated centre readiness evaluation
+router.get('/:id/readiness', authenticateJwt, async (req: AuthenticatedRequest, res: Response) => {
+  const id = req.params.id as string;
+  try {
+    const { CentreReadinessService } = await import('../services/centreReadinessService');
+    const report = await CentreReadinessService.evaluateReadiness(id);
+    return res.json(report);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Readiness evaluation failed' });
+  }
+});
+
 export default router;
+

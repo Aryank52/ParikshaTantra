@@ -16,6 +16,13 @@ import { AuditView } from './views/AuditView';
 import { PublicVerificationPortal } from './views/PublicVerificationPortal';
 import { AttackSimulatorView } from './views/AttackSimulatorView';
 
+import { ExamDayControlTower } from './views/ExamDayControlTower';
+import { CentreGatewayView } from './views/CentreGatewayView';
+import { TerminalManagementView } from './views/TerminalManagementView';
+import { CandidateArrivalView } from './views/CandidateArrivalView';
+import { LeakForensicsWorkbench } from './views/LeakForensicsWorkbench';
+import { StatusView } from './views/StatusView';
+
 export const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewType>('LANDING');
 
@@ -25,6 +32,14 @@ export const AppContent: React.FC = () => {
         return <NationalLandingPage onNavigate={setCurrentView} />;
       case 'EXAM_CATALOG':
         return <PublicExamCatalog />;
+      case 'CONTROL_TOWER':
+        return <ExamDayControlTower />;
+      case 'CANDIDATE_ARRIVAL':
+        return <CandidateArrivalView />;
+      case 'CENTRE_GATEWAY':
+        return <CentreGatewayView />;
+      case 'TERMINAL_MANAGEMENT':
+        return <TerminalManagementView />;
       case 'CBT_PORTAL':
         return <CandidateCBT />;
       case 'AUTHORITY_PORTAL':
@@ -35,6 +50,8 @@ export const AppContent: React.FC = () => {
         return <CentrePortal />;
       case 'SOC_OPERATIONS':
         return <SOCDashboard />;
+      case 'LEAK_FORENSICS':
+        return <LeakForensicsWorkbench />;
       case 'LEAK_DETECTION':
         return <LeakDetectionView />;
       case 'INSIDER_THREAT':
@@ -45,10 +62,13 @@ export const AppContent: React.FC = () => {
         return <PublicVerificationPortal />;
       case 'ATTACK_SIMULATOR':
         return <AttackSimulatorView />;
+      case 'SYSTEM_STATUS':
+        return <StatusView />;
       default:
         return <NationalLandingPage onNavigate={setCurrentView} />;
     }
   };
+
 
   return (
     <div className="min-h-screen bg-[#080E18] flex flex-col font-sans">
