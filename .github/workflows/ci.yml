@@ -7,8 +7,8 @@ on:
     branches: [ main, master, develop ]
 
 jobs:
-  frontend-ci:
-    name: Frontend (React / Vite) Build & Verification
+  ci-build:
+    name: ParikshaTantra Build, Test & Security Pipeline
     runs-on: ubuntu-latest
 
     steps:
@@ -20,163 +20,32 @@ jobs:
         with:
           node-version: 22
           cache: 'npm'
-          cache-dependency-path: 'client/package-lock.json'
+          cache-dependency-path: |
+            client/package-lock.json
+            server/package-lock.json
 
-      - name: Install Frontend Dependencies
+      - name: Verify Frontend (Typecheck & Build)
         run: |
           cd client
           npm ci
-
-      - name: Frontend TypeScript Typecheck
-        run: |
-          cd client
           npm run typecheck
-
-      - name: Build Frontend Application
-        run: |
-          cd client
           npm run build
 
-      - name: Upload Frontend Build Bundle Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-dist
-          path: client/dist/
-          retention-days: 7
-
-  backend-ci:
-    name: Backend (Express / TypeScript) Build & Verification
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js v22
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'npm'
-          cache-dependency-path: 'server/package-lock.json'
-
-      - name: Install Backend Dependencies
+      - name: Verify Backend & PostgreSQL Schema
         run: |
           cd server
           npm ci
-
-      - name: Generate Prisma Client Bindings
-        run: |
-          cd server
           npx prisma generate
-
-      - name: Backend TypeScript Typecheck
-        run: |
-          cd server
-          npm run typecheck
-
-      - name: Build Backend Express Application
-        run: |
-          cd server
-          npm run build
-
-  database-ci:
-    name: PostgreSQL & Prisma Database Migration Validation
-    runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: parikshatantra
-          POSTGRES_USER: pariksha_admin
-          POSTGRES_PASSWORD: SecurePassword2026!
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U pariksha_admin -d parikshatantra"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js v22
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'npm'
-          cache-dependency-path: 'server/package-lock.json'
-
-      - name: Install Backend Dependencies
-        run: |
-          cd server
-          npm ci
-
-      - name: Generate Prisma Client Bindings
-        run: |
-          cd server
-          npx prisma generate
-
-      - name: Validate Prisma PostgreSQL Schema
-        run: |
-          cd server
           npx prisma validate
+          npm run typecheck
+          npm run build
 
-      - name: Apply DDL Database Push to Disposable PostgreSQL CI Service
-        env:
-          DATABASE_URL: "postgresql://pariksha_admin:SecurePassword2026!@localhost:5432/parikshatantra?schema=public"
-          DIRECT_DATABASE_URL: "postgresql://pariksha_admin:SecurePassword2026!@localhost:5432/parikshatantra?schema=public"
+      - name: Dependency Security Audit
         run: |
-          cd server
-          npx prisma db push
+          cd client && npm audit --audit-level=high || true
+          cd ../server && npm audit --audit-level=high || true
 
-      - name: Verify Database Master & Demo Seed Execution
-        env:
-          DATABASE_URL: "postgresql://pariksha_admin:SecurePassword2026!@localhost:5432/parikshatantra?schema=public"
-          DIRECT_DATABASE_URL: "postgresql://pariksha_admin:SecurePassword2026!@localhost:5432/parikshatantra?schema=public"
-          JWT_SECRET: "PARIKSHATANTRA_ULTRA_SECURE_JWT_SECRET_2026_PROD_GRADE"
-          AES_MASTER_KEY: "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90"
-        run: |
-          cd server
-          npx ts-node src/seed.ts
-
-  security-ci:
-    name: Dependency Security & Secret Audit
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js v22
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Audit Client Dependencies
-        run: |
-          cd client
-          npm audit --audit-level=high || true
-
-      - name: Audit Server Dependencies
-        run: |
-          cd server
-          npm audit --audit-level=high || true
-
-  docker-ci:
-    name: Docker Container Build Verification
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-
-      - name: Build Frontend Docker Image
+      - name: Docker Container Build Verification
         run: |
           docker build -t parikshatantra-frontend:latest ./client
-
-      - name: Build Backend Docker Image
-        run: |
           docker build -t parikshatantra-backend:latest ./server

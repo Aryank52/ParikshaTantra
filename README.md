@@ -87,13 +87,39 @@ npm run prisma:validate
 
 ---
 
-## 📋 Governance & Deployment Specifications
+## 📁 Repository Structure
 
-- [FINAL_REPOSITORY_AUDIT.md](file:///e:/PROJECTS/ParikshaTantra/FINAL_REPOSITORY_AUDIT.md) — Final Repository Packaging Audit
-- [CI_CD_SETUP.md](file:///e:/PROJECTS/ParikshaTantra/CI_CD_SETUP.md) — GitHub Actions CI/CD Pipeline Specification
-- [POSTGRES_MIGRATION.md](file:///e:/PROJECTS/ParikshaTantra/POSTGRES_MIGRATION.md) — PostgreSQL & Supabase Database Migration Guide
-- [VERCEL_DEPLOYMENT.md](file:///e:/PROJECTS/ParikshaTantra/VERCEL_DEPLOYMENT.md) — Vercel Static Frontend Deployment Guide
-- [RENDER_DEPLOYMENT.md](file:///e:/PROJECTS/ParikshaTantra/RENDER_DEPLOYMENT.md) — Render Node.js Backend Deployment Guide
-- [SECURITY_FINAL.md](file:///e:/PROJECTS/ParikshaTantra/SECURITY_FINAL.md) — Production Zero-Trust Security Specification
-- [CONTRIBUTING.md](file:///e:/PROJECTS/ParikshaTantra/CONTRIBUTING.md) — Contribution Guidelines
-- [LICENSE](file:///e:/PROJECTS/ParikshaTantra/LICENSE) — Apache License 2.0
+```
+/
+├── .github/                     # GitHub Actions CI/CD workflows & Dependabot
+├── client/                      # React 18 / Vite Frontend Application
+├── server/                      # Node.js / Express API Backend & Prisma ORM
+├── docs/                        # Complete Architecture & Operational Documentation (35+ Guides)
+├── .dockerignore                # Root & component Docker exclusion rules
+├── .env.example                 # Root environment variable template
+├── .gitignore                   # Security secret & build artifact exclusion
+├── package.json                 # Monorepo workspace build scripts
+├── docker-compose.yml           # PostgreSQL, Redis & Container orchestration
+├── README.md                    # System Overview
+├── LICENSE                      # Apache License 2.0
+├── CONTRIBUTING.md              # Contribution standards & PR workflow
+├── CODE_OF_CONDUCT.md           # Contributor Covenant Code of Conduct
+├── SECURITY.md                  # Security Vulnerability Reporting
+└── CI_CD_SETUP.md               # GitHub Actions CI/CD Pipeline Guide
+```
+
+---
+
+## 📋 Comprehensive Documentation Index (`docs/`)
+
+All architectural, security, testing, and deployment specifications are cleanly organized inside the [`docs/`](docs) directory:
+
+- [docs/FINAL_REPOSITORY_AUDIT.md](docs/FINAL_REPOSITORY_AUDIT.md) — Final Repository Packaging Audit
+- [docs/POSTGRES_MIGRATION.md](docs/POSTGRES_MIGRATION.md) — PostgreSQL & Supabase Migration Guide
+- [docs/VERCEL_DEPLOYMENT.md](docs/VERCEL_DEPLOYMENT.md) — Vercel Static Frontend Deployment Guide
+- [docs/RENDER_DEPLOYMENT.md](docs/RENDER_DEPLOYMENT.md) — Render Node.js Backend Deployment Guide
+- [docs/SECURITY_FINAL.md](docs/SECURITY_FINAL.md) — Production Zero-Trust Security Specification
+- [docs/GITHUB_WORKFLOW.md](docs/GITHUB_WORKFLOW.md) — Branch Protection & Pull Request Guide
+- [CI_CD_SETUP.md](CI_CD_SETUP.md) — GitHub Actions CI/CD Pipeline Specification
+- [CONTRIBUTING.md](CONTRIBUTING.md) — Contribution Guidelines
+- [LICENSE](LICENSE) — Apache License 2.0
