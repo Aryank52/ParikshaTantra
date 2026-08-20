@@ -5,10 +5,14 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
     "db:push": "prisma db push",
-    "db:seed": "ts-node src/seed.ts"
+    "db:seed": "ts-node src/seed.ts",
+    "prisma:generate": "prisma generate",
+    "prisma:validate": "prisma validate"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

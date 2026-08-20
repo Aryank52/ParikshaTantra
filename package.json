@@ -1,0 +1,22 @@
+{
+  "name": "parikshatantra-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Secure National Examination Lifecycle & CBT Infrastructure Operating System",
+  "scripts": {
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "npm --prefix client run build",
+    "build:server": "npm --prefix server run build",
+    "typecheck": "npm run typecheck:client && npm run typecheck:server",
+    "typecheck:client": "npm --prefix client run typecheck",
+    "typecheck:server": "npm --prefix server run typecheck",
+    "lint": "npm run lint:client && npm run lint:server",
+    "lint:client": "npm --prefix client run lint",
+    "lint:server": "npm --prefix server run lint",
+    "test": "npm --prefix client test --if-present && npm --prefix server test --if-present",
+    "prisma:generate": "npm --prefix server run prisma:generate",
+    "prisma:validate": "npm --prefix server run prisma:validate",
+    "db:seed": "npm --prefix server run db:seed"
+  },
+  "devDependencies": {}
+}

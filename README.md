@@ -1,19 +1,19 @@
 # ParikshaTantra (परीक्षा तन्त्र)
 ## Secure Examination Lifecycle & CBT Infrastructure Operating System
 
+![CI/CD Pipeline](https://img.shields.io/github/actions/workflow/status/Aryank52/ParikshaTantra/ci.yml?branch=main&style=for-the-badge&logo=github-actions&label=CI/CD%20Pipeline)
 ![System Status](https://img.shields.io/badge/Security-ZERO--TRUST%20PROD-emerald?style=for-the-badge&logo=shield)
 ![Architecture](https://img.shields.io/badge/Architecture-Two--Portal%20Unified-blue?style=for-the-badge)
-![Encryption](https://img.shields.io/badge/Question%20Vault-AES--256--GCM-amber?style=for-the-badge)
-![Audit](https://img.shields.io/badge/Audit%20Ledger-SHA--256%20Hash%20Chained-indigo?style=for-the-badge)
+![Database](https://img.shields.io/badge/Database-PostgreSQL%20Prisma-indigo?style=for-the-badge)
 ![AI Copilot](https://img.shields.io/badge/AI-Pariksha%20AI%20Copilot-teal?style=for-the-badge)
 
 ---
 
 ## 🏛️ Executive Summary
 
-**ParikshaTantra** is a productized, zero-trust national examination operating system designed for central, state, and district examination authorities (e.g., UPSC, NTA, SSC, IBPS, and State PSCs).
+**ParikshaTantra** is a productized zero-trust national examination operating system designed for central, state, and district examination authorities (e.g., UPSC, NTA, SSC, IBPS, and State PSCs).
 
-It provides a complete end-to-end examination lifecycle organized around **Two Unified Product Portals**:
+It provides a complete end-to-end examination security lifecycle organized around **Two Unified Product Portals**:
 
 ### 1. 🎓 Student / Candidate Portal
 - **Redesigned Candidate Dashboard**: Immediate "NEXT EXAM" focus card showing exam title, shift, date, reporting time, allocated test centre, admit card status, and terminal seat node (`Terminal Node 14B`).
@@ -32,6 +32,20 @@ It provides a complete end-to-end examination lifecycle organized around **Two U
 
 ---
 
+## 🏷️ System Maturity Classification
+
+| System Component | Classification | Description |
+| :--- | :---: | :--- |
+| **Two-Portal User Interface** | **DEPLOYMENT READY** | Complete React 18 / Vite SPA for Candidate & Government personas. |
+| **Express API Engine** | **DEPLOYMENT READY** | Node.js v22 Express API with mounted security routes & WebSockets. |
+| **Relational Database** | **DEPLOYMENT READY** | PostgreSQL Prisma ORM with connection pooling compatibility. |
+| **Zero-Trust Vaulting** | **DEPLOYMENT READY** | AES-256-GCM + HKDF per-question key derivation & 4-Eyes signatures. |
+| **National Exam Catalog** | **REFERENCE / DEMO** | 15+ Central & State PSC reference entries with dataset badges. |
+| **Payment Gateways** | **SIMULATED** | Fee processing abstraction using auto-approval demo state. |
+| **Biometric Scanners** | **SIMULATED** | Pseudonymized identity hashes validated deterministically. |
+
+---
+
 ## 🚀 Quick Start Guide
 
 ### Prerequisites
@@ -39,29 +53,47 @@ It provides a complete end-to-end examination lifecycle organized around **Two U
 - npm v10.x
 - Docker & Docker Compose (Optional)
 
-### Running Locally (Development)
+### Running Locally (Monorepo Workspace)
 
 ```bash
-# 1. Setup Backend & Seed Database
+# 1. Install root, backend, and frontend dependencies
+npm install
+
+# 2. Setup Backend & PostgreSQL Database
 cd server
 npm install
-npx prisma db push
 npx prisma generate
+npx prisma db push
 npx ts-node src/seed.ts
 npm run dev
 
-# 2. Setup Frontend (in a new terminal tab)
+# 3. Setup Frontend (in a new terminal tab)
 cd ../client
 npm install
-npx vite --port 3000
+npm run dev
+```
+
+### Workspace Commands (Root Directory)
+```bash
+# Build both frontend and backend
+npm run build
+
+# Run typechecks across workspace
+npm run typecheck
+
+# Validate PostgreSQL Prisma schema
+npm run prisma:validate
 ```
 
 ---
 
-## 📋 Governance & Specifications
+## 📋 Governance & Deployment Specifications
 
-- [PHASE4_CURRENT_STATE.md](file:///e:/PROJECTS/ParikshaTantra/PHASE4_CURRENT_STATE.md) — Comprehensive Codebase Audit
-- [SECRET_ROTATION_GUIDE.md](file:///e:/PROJECTS/ParikshaTantra/SECRET_ROTATION_GUIDE.md) — Secret Hygiene & SOP Key Rotation Guide
-- [PHASE4_COMPLETION_REPORT.md](file:///e:/PROJECTS/ParikshaTantra/PHASE4_COMPLETION_REPORT.md) — Phase 4 Delivery & Productization Report
-- [ARCHITECTURE.md](file:///e:/PROJECTS/ParikshaTantra/ARCHITECTURE.md) — Technical System Architecture
-- [SECURITY.md](file:///e:/PROJECTS/ParikshaTantra/SECURITY.md) — Zero-Trust Security Specification
+- [FINAL_REPOSITORY_AUDIT.md](file:///e:/PROJECTS/ParikshaTantra/FINAL_REPOSITORY_AUDIT.md) — Final Repository Packaging Audit
+- [CI_CD_SETUP.md](file:///e:/PROJECTS/ParikshaTantra/CI_CD_SETUP.md) — GitHub Actions CI/CD Pipeline Specification
+- [POSTGRES_MIGRATION.md](file:///e:/PROJECTS/ParikshaTantra/POSTGRES_MIGRATION.md) — PostgreSQL & Supabase Database Migration Guide
+- [VERCEL_DEPLOYMENT.md](file:///e:/PROJECTS/ParikshaTantra/VERCEL_DEPLOYMENT.md) — Vercel Static Frontend Deployment Guide
+- [RENDER_DEPLOYMENT.md](file:///e:/PROJECTS/ParikshaTantra/RENDER_DEPLOYMENT.md) — Render Node.js Backend Deployment Guide
+- [SECURITY_FINAL.md](file:///e:/PROJECTS/ParikshaTantra/SECURITY_FINAL.md) — Production Zero-Trust Security Specification
+- [CONTRIBUTING.md](file:///e:/PROJECTS/ParikshaTantra/CONTRIBUTING.md) — Contribution Guidelines
+- [LICENSE](file:///e:/PROJECTS/ParikshaTantra/LICENSE) — Apache License 2.0
