@@ -93,7 +93,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U pariksha_admin -d parikshatantra"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 5
@@ -113,6 +113,11 @@ jobs:
         run: |
           cd server
           npm ci
+
+      - name: Generate Prisma Client Bindings
+        run: |
+          cd server
+          npx prisma generate
 
       - name: Validate Prisma PostgreSQL Schema
         run: |
