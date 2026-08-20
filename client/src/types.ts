@@ -22,6 +22,7 @@ export interface User {
     name: string;
     code: string;
   };
+  candidateCode?: string;
 }
 
 export interface Question {

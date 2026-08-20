@@ -1,29 +1,34 @@
 # ParikshaTantra (परीक्षा तन्त्र)
-## Secure National Examination & Anti-Leak Operating System
+## Secure Examination Lifecycle & CBT Infrastructure Operating System
 
 ![System Status](https://img.shields.io/badge/Security-ZERO--TRUST%20PROD-emerald?style=for-the-badge&logo=shield)
-![Architecture](https://img.shields.io/badge/Architecture-Defense--in--Depth-blue?style=for-the-badge)
+![Architecture](https://img.shields.io/badge/Architecture-Two--Portal%20Unified-blue?style=for-the-badge)
 ![Encryption](https://img.shields.io/badge/Question%20Vault-AES--256--GCM-amber?style=for-the-badge)
 ![Audit](https://img.shields.io/badge/Audit%20Ledger-SHA--256%20Hash%20Chained-indigo?style=for-the-badge)
+![AI Copilot](https://img.shields.io/badge/AI-Pariksha%20AI%20Copilot-teal?style=for-the-badge)
 
 ---
 
 ## 🏛️ Executive Summary
 
-**ParikshaTantra** is a zero-trust, defense-in-depth, production-oriented national examination security operating system designed for central, state, and district examination authorities.
+**ParikshaTantra** is a productized, zero-trust national examination operating system designed for central, state, and district examination authorities (e.g., UPSC, NTA, SSC, IBPS, and State PSCs).
 
-Unlike standard quiz platforms, ParikshaTantra safeguards the complete **examination security lifecycle**:
-- **Public Examination Catalog & Search**: Unified search for Central & State Public Service Commission exams (UPSC, NTA, SSC, IBPS, RRB, MPSC, UPPSC, BPSC, WBPSC, KPSC, TSPSC, RPSC, MPPSC, TNPSC, GPSC) with dataset badges (`REFERENCE` / `DEMO DATA`).
-- **Candidate Registration & Rules-Based Eligibility**: 5-step registration wizard evaluating age, education, and category against backend eligibility rules with automatic admit card issuance and seat node allocation (`Terminal Node 14B`).
-- **Question Creation & Vaulting**: AES-256-GCM symmetric encryption with mandatory **4-Eyes Dual Approval**.
-- **Exam Activation (Core Innovation #1)**: Central Global Exam Release generating short-lived, centre-specific derived activation tokens ($T_{centre} = \text{HMAC-SHA256}(K_{secret}, ExamID + CentreID + TimeWindow)$), eliminating candidate mobile-phone OTP dependencies.
-- **Just-In-Time Question Release (Core Innovation #2)**: Encrypted question payloads are released ONLY to sandboxed terminals during active, authorized candidate CBT sessions.
-- **Offline Resilience**: Local encrypted answer buffering with sequence numbers and retry queues prevents data loss during temporary network drops.
-- **Security Operations Centre (SOC)**: Interactive GIS telemetry map markers across 25+ Indian cities, dynamic threat matrix, AI explainable risk scores (0–100), and Emergency Global/Centre/Device/Session Freeze controls.
-- **AI Anomaly & Leak Detection**: Statistical insider threat risk scoring and TF-IDF cosine similarity search against uploaded leaked snippets.
-- **Tamper-Evident Forensic Audit Ledger**: Continuous SHA-256 block hash chaining with real-time recalculation integrity verification.
-- **Public Certificate Verification**: QR-code verifiable certificates signed via RSA/HMAC digests at `/verify`.
-- **10-Scenario Interactive Attack Simulator**: Real-time REST execution testing defenses against unauthorized API access, expired tokens, unregistered devices, bulk question exports, tampered audit logs, leaked screenshots, session hijacking, unauthorized result publication, and forged certificates.
+It provides a complete end-to-end examination lifecycle organized around **Two Unified Product Portals**:
+
+### 1. 🎓 Student / Candidate Portal
+- **Redesigned Candidate Dashboard**: Immediate "NEXT EXAM" focus card showing exam title, shift, date, reporting time, allocated test centre, admit card status, and terminal seat node (`Terminal Node 14B`).
+- **Pseudonymized Candidate Profile**: Secure identity record (`identityHash`) protecting candidate identity details while tracking allocated admit cards and category details.
+- **Hardware System Pre-Check**: 5-point diagnostic test evaluating camera stream, microphone level, display resolution, and low latency network connectivity.
+- **Sandboxed CBT Terminal**: KaTeX math rendering, section navigation, local storage backup, and JIT decrypted question delivery.
+- **Pariksha AI Student Assistant**: Embedded role-aware AI assistant helping candidates with application tracking, admit card instructions, hardware checks, and exam rules.
+
+### 2. 🏛️ Government / Administration Portal
+- **Exam Day Control Tower**: Real-time operational command telemetry across live exams, centre status, active terminals, and network connectivity.
+- **Question Vaulting & 4-Eyes Governance**: AES-256-GCM encryption with mandatory dual approver digital signatures before question inclusion in blueprints.
+- **Centre Activation Engine**: Short-lived derived HMAC center activation tokens ($T_{centre} = \text{HMAC-SHA256}(K_{secret}, ExamID + CentreID + TimeWindow)$).
+- **Security Operations Centre (SOC)**: Interactive GIS threat markers, statistical risk scoring, and emergency freeze controls (Global/Centre/Terminal/Session).
+- **Tamper-Evident Merkle Audit Ledger**: Block hash chaining with Merkle tree batch roots and $O(\log N)$ proof paths.
+- **Pariksha AI Operations Copilot**: Administrative AI copilot analyzing centre readiness, threat telemetry, audit Merkle roots, and activation tokens.
 
 ---
 
@@ -32,7 +37,7 @@ Unlike standard quiz platforms, ParikshaTantra safeguards the complete **examina
 ### Prerequisites
 - Node.js v22.x or higher
 - npm v10.x
-- Docker & Docker Compose (Optional for containerized run)
+- Docker & Docker Compose (Optional)
 
 ### Running Locally (Development)
 
@@ -51,16 +56,12 @@ npm install
 npx vite --port 3000
 ```
 
-### Containerized Deployment (Docker Compose)
-
-```bash
-docker-compose up -d --build
-```
-
 ---
 
-## 🔐 Zero-Trust Security Principles
+## 📋 Governance & Specifications
 
-1. **"Never Trust, Always Verify"**: Every API call evaluates JWT identity, 12-role RBAC permissions, tenant boundaries, device authorization, and time windows.
-2. **Defense in Depth**: Multiple security perimeters (AES-256 vaulting, 4-Eyes signatures, HMAC token derivation, JIT delivery, SOC freeze enforcers).
-3. **Fail Secure**: Any network drop or security anomaly defaults to local evidence preservation and session lock.
+- [PHASE4_CURRENT_STATE.md](file:///e:/PROJECTS/ParikshaTantra/PHASE4_CURRENT_STATE.md) — Comprehensive Codebase Audit
+- [SECRET_ROTATION_GUIDE.md](file:///e:/PROJECTS/ParikshaTantra/SECRET_ROTATION_GUIDE.md) — Secret Hygiene & SOP Key Rotation Guide
+- [PHASE4_COMPLETION_REPORT.md](file:///e:/PROJECTS/ParikshaTantra/PHASE4_COMPLETION_REPORT.md) — Phase 4 Delivery & Productization Report
+- [ARCHITECTURE.md](file:///e:/PROJECTS/ParikshaTantra/ARCHITECTURE.md) — Technical System Architecture
+- [SECURITY.md](file:///e:/PROJECTS/ParikshaTantra/SECURITY.md) — Zero-Trust Security Specification

@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import http from 'http';
 import cors from 'cors';
 import { CONFIG, validateSecrets } from './config';
@@ -25,6 +25,7 @@ import registrationRoutes from './routes/registrationRoutes';
 import controlTowerRoutes from './routes/controlTowerRoutes';
 import paperRoutes from './routes/paperRoutes';
 import hardwareCheckRoutes from './routes/hardwareCheckRoutes';
+import aiRoutes from './routes/aiRoutes';
 
 const app = express();
 const server = http.createServer(app);
@@ -33,8 +34,12 @@ const server = http.createServer(app);
 app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '10mb' }));
 
-// Request Logger
-app.use((req, _res, next) => {
+// Request Logger & Security Headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
   next();
 });
@@ -68,8 +73,17 @@ app.use('/api/registration', registrationRoutes);
 app.use('/api/control-tower', controlTowerRoutes);
 app.use('/api/paper', paperRoutes);
 app.use('/api/hardware-check', hardwareCheckRoutes);
+app.use('/api/ai', aiRoutes);
 
-
+// Structured Central Error Handling Middleware
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  console.error('🔥 Server Error Unhandled Exception:', err);
+  return res.status(err.status || 500).json({
+    success: false,
+    error: err.message || 'Internal Examination Platform Error',
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // Initialize WebSockets
 WebSocketService.initialize(server);
@@ -81,7 +95,6 @@ server.listen(CONFIG.PORT, async () => {
   console.log(`🔗 WebSockets Active at ws://localhost:${CONFIG.PORT}/ws`);
   console.log(`=======================================================`);
   validateSecrets();
-
 
   try {
     await seedDatabase();
