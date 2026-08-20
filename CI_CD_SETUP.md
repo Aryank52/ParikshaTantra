@@ -3,77 +3,65 @@
 > **CI Engine**: GitHub Actions (`.github/workflows/ci.yml`)  
 > **Automation**: Dependabot (`.github/dependabot.yml`)  
 > **Target Branches**: `main`, `master`, `develop`  
+> **Database Protocol**: Disposable PostgreSQL CI Container (`postgres:16-alpine`)  
 
 ---
 
 ## 🏛️ Executive Summary
 
-ParikshaTantra utilizes an automated **GitHub Actions CI/CD Pipeline** to validate pull requests and commits. The pipeline executes 5 parallel/sequential jobs ensuring frontend TypeScript compilation, backend Express build, ephemeral PostgreSQL database migration & seeding, security dependency scanning, and Docker container verification.
+ParikshaTantra utilizes an automated **GitHub Actions CI/CD Pipeline** to validate pull requests and commits across 5 distinct workflow jobs:
+1. `frontend`: React 18 / Vite compilation & TypeScript typecheck.
+2. `backend`: Express API compilation & Prisma Client generation.
+3. `database`: Ephemeral PostgreSQL container (`postgres:16-alpine`) running schema validation, DDL migration push, and database seed execution.
+4. `security`: High-severity dependency security audit (`npm audit`).
+5. `docker`: Multi-stage Dockerfile build verification for `./client` and `./server`.
 
 ---
 
-## ⚡ GitHub Actions Workflow Jobs Matrix
+## ⚡ GitHub Actions Workflow Jobs Architecture
 
 ```
-                      ┌───────────────────────────────┐
-                      │    Push / Pull Request        │
-                      └───────────────┬───────────────┘
-                                      │
-         ┌────────────────────────────┼────────────────────────────┐
-         ▼                            ▼                            ▼
-┌──────────────────┐        ┌──────────────────┐        ┌──────────────────┐
-│   frontend-ci    │        │    backend-ci    │        │   database-ci    │
-│  - Node 22 setup │        │  - Node 22 setup │        │  - Postgres 16   │
-│  - npm ci        │        │  - npm ci        │        │  - Prisma push   │
-│  - typecheck     │        │  - Prisma gen    │        │  - Seed verify   │
-│  - Vite build    │        │  - tsc build     │        └──────────────────┘
-└────────┬─────────┘        └──────────────────┘
-         │
-         ▼
-┌──────────────────┐        ┌──────────────────┐
-│   security-ci    │        │    docker-ci     │
-│  - npm audit     │        │  - docker build  │
-└──────────────────┘        └──────────────────┘
+                               ┌───────────────────────────────┐
+                               │    Push / Pull Request        │
+                               └───────────────┬───────────────┘
+                                               │
+    ┌──────────────────┬───────────────────────┼───────────────────────┬──────────────────┐
+    ▼                  ▼                       ▼                       ▼                  ▼
+┌──────────────┐ ┌──────────────┐   ┌─────────────────────┐   ┌──────────────┐   ┌──────────────┐
+│   frontend   │ │   backend    │   │      database       │   │   security   │   │    docker    │
+│ - Node 22    │ │ - Node 22    │   │ - Postgres 16       │   │ - npm audit  │   │ - Docker     │
+│ - npm ci     │ │ - npm ci     │   │ - DATABASE_URL      │   │              │   │   build      │
+│ - typecheck  │ │ - Prisma gen │   │ - DIRECT_DB_URL     │   └──────────────┘   └──────────────┘
+│ - Vite build │ │ - tsc build  │   │ - Prisma validate   │
+└──────────────┘ └──────────────┘   │ - Prisma db push    │
+                                    │ - Seed execution    │
+                                    └─────────────────────┘
 ```
 
 ---
 
-## 🛠️ Step-by-Step CI Job Definitions
+## 🛠️ Environment Variable & PostgreSQL CI Configuration
 
-### 1. `frontend-ci`
-- **Environment**: Ubuntu Latest / Node.js v22
-- **Steps**: Checkout code, install dependencies (`npm ci`), run typecheck (`tsc --noEmit`), build Vite application (`npm run build`), and upload `dist/` bundle artifact.
+For the `database` job, GitHub Actions provisions a temporary, disposable PostgreSQL 16 container (`postgres:16-alpine`).
 
-### 2. `backend-ci`
-- **Environment**: Ubuntu Latest / Node.js v22
-- **Steps**: Checkout code, install dependencies (`npm ci`), generate Prisma client (`npx prisma generate`), run typecheck (`tsc --noEmit`), and compile TypeScript backend (`npm run build`).
+Both `DATABASE_URL` and `DIRECT_DATABASE_URL` are explicitly set under job `env:`:
 
-### 3. `database-ci`
-- **Service Container**: `postgres:16-alpine` running on port 5432 with health check (`pg_isready`).
-- **Steps**: Validate Prisma schema (`npx prisma validate`), push DDL schema migration (`npx prisma db push`), and verify master data seed execution (`npx ts-node src/seed.ts`).
-
-### 4. `security-ci`
-- **Steps**: Run high-severity dependency security audits (`npm audit --audit-level=high`) for both frontend and backend projects.
-
-### 5. `docker-ci`
-- **Steps**: Verify Docker container image builds for `./client` and `./server` Dockerfiles.
+```yaml
+env:
+  DATABASE_URL: "postgresql://pariksha_ci:pariksha_ci@localhost:5432/pariksha_ci?schema=public"
+  DIRECT_DATABASE_URL: "postgresql://pariksha_ci:pariksha_ci@localhost:5432/pariksha_ci?schema=public"
+  JWT_SECRET: "PARIKSHATANTRA_ULTRA_SECURE_JWT_SECRET_2026_PROD_GRADE"
+  AES_MASTER_KEY: "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90"
+  HMAC_ACTIVATION_KEY: "PARIKSHATANTRA_HMAC_ACTIVATION_SECRET_KEY_998877665544332211"
+```
 
 ---
 
-## 💻 Running Equivalent Commands Locally
+## 🔒 Recommended GitHub Branch Protection Settings
 
-Before submitting a Pull Request, developers can execute local equivalents from the root workspace:
-
-```bash
-# 1. Run workspace typechecks
-npm run typecheck
-
-# 2. Build both frontend and backend
-npm run build
-
-# 3. Validate PostgreSQL Prisma schema
-npm run prisma:validate
-
-# 4. Verify local Docker containers
-docker-compose build
-```
+Once all jobs pass, set the following required status checks in GitHub Repository Settings:
+- `Frontend (React / Vite) Build & Verification`
+- `Backend (Express / TypeScript) Build & Verification`
+- `PostgreSQL & Prisma Database Migration Validation`
+- `Dependency Security & Secret Audit`
+- `Docker Container Build Verification`
