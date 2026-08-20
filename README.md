@@ -101,20 +101,3 @@ npm run prisma:validate
 ├── CODE_OF_CONDUCT.md           # Contributor Covenant Code of Conduct
 ├── SECURITY.md                  # Security Vulnerability Reporting
 └── CI_CD_SETUP.md               # GitHub Actions CI/CD Pipeline Guide
-```
-
----
-
-##  Comprehensive Documentation Index (`docs/`)
-
-All architectural, security, testing, and deployment specifications are cleanly organized inside the [`docs/`](docs) directory:
-
-- [docs/FINAL_REPOSITORY_AUDIT.md](docs/FINAL_REPOSITORY_AUDIT.md) — Final Repository Packaging Audit
-- [docs/POSTGRES_MIGRATION.md](docs/POSTGRES_MIGRATION.md) — PostgreSQL & Supabase Migration Guide
-- [docs/VERCEL_DEPLOYMENT.md](docs/VERCEL_DEPLOYMENT.md) — Vercel Static Frontend Deployment Guide
-- [docs/RENDER_DEPLOYMENT.md](docs/RENDER_DEPLOYMENT.md) — Render Node.js Backend Deployment Guide
-- [docs/SECURITY_FINAL.md](docs/SECURITY_FINAL.md) — Production Zero-Trust Security Specification
-- [docs/GITHUB_WORKFLOW.md](docs/GITHUB_WORKFLOW.md) — Branch Protection & Pull Request Guide
-- [CI_CD_SETUP.md](CI_CD_SETUP.md) — GitHub Actions CI/CD Pipeline Specification
-- [CONTRIBUTING.md](CONTRIBUTING.md) — Contribution Guidelines
-- [LICENSE](LICENSE) — Apache License 2.0
