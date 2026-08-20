@@ -1,4 +1,4 @@
-FROM node:22-alpine AS builder
+FROM node:26-alpine AS builder
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ ENV DIRECT_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/parikshat
 RUN npx prisma generate
 RUN npm run build
 
-FROM node:22-alpine AS runner
+FROM node:26-alpine AS runner
 
 WORKDIR /app
 
