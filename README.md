@@ -1,11 +1,6 @@
 # ParikshaTantra (परीक्षा तन्त्र)
 ## Secure Examination Lifecycle & CBT Infrastructure Operating System
 
-![CI/CD Pipeline](https://img.shields.io/github/actions/workflow/status/Aryank52/ParikshaTantra/ci.yml?branch=main&style=for-the-badge&logo=github-actions&label=CI/CD%20Pipeline)
-![System Status](https://img.shields.io/badge/Security-ZERO--TRUST%20PROD-emerald?style=for-the-badge&logo=shield)
-![Architecture](https://img.shields.io/badge/Architecture-Two--Portal%20Unified-blue?style=for-the-badge)
-![Database](https://img.shields.io/badge/Database-PostgreSQL%20Prisma-indigo?style=for-the-badge)
-![AI Copilot](https://img.shields.io/badge/AI-Pariksha%20AI%20Copilot-teal?style=for-the-badge)
 
 ---
 
