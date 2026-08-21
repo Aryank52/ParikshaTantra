@@ -63,7 +63,7 @@ router.post('/verify-attendance', authenticateJwt, async (req: AuthenticatedRequ
     },
   });
 
-  const { AuditLedgerService } = await import('../services/auditLedgerService');
+  const { AuditLedgerService } = await import('../services/auditLedgerService.js');
   await AuditLedgerService.logEvent({
     eventType: 'CANDIDATE_CENTRE_VERIFIED',
     actorId: req.user!.userId,
