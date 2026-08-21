@@ -184,7 +184,7 @@ router.post(
       return res.status(400).json({ error: 'Missing targetState parameter' });
     }
 
-    const { ExamLifecycleService } = await import('../services/examLifecycleService');
+    const { ExamLifecycleService } = await import('../services/examLifecycleService.js');
     const result = await ExamLifecycleService.transitionState({
       examId,
       targetState,
