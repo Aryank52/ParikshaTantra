@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserPlus, X, CheckCircle2, AlertCircle, Award, Search, ArrowRight, ArrowLeft, Shield } from 'lucide-react';
 import { ExamCatalogEntry } from '../types';
+import { fetchApi } from '../services/api';
 
 interface CandidateRegistrationModalProps {
   isOpen: boolean;
@@ -43,8 +44,7 @@ export const CandidateRegistrationModal: React.FC<CandidateRegistrationModalProp
 
   const fetchExams = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/catalog/exams');
-      const data = await res.json();
+      const data = await fetchApi('/catalog/exams');
       if (data.success) {
         setExams(data.data);
       }
@@ -60,16 +60,14 @@ export const CandidateRegistrationModal: React.FC<CandidateRegistrationModalProp
       setCheckingEligibility(true);
       setError(null);
 
-      const res = await fetch('http://localhost:5000/api/registration/eligibility-check', {
+      const data = await fetchApi('/registration/eligibility-check', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           examCatalogCode: selectedExamCode,
           age,
           qualification
         })
       });
-      const data = await res.json();
       if (data.success) {
         setEligibilityResult(data);
         setStep(3);
@@ -88,9 +86,8 @@ export const CandidateRegistrationModal: React.FC<CandidateRegistrationModalProp
       setSubmitting(true);
       setError(null);
 
-      const res = await fetch('http://localhost:5000/api/registration/apply', {
+      const data = await fetchApi('/registration/apply', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName,
           email,
@@ -102,7 +99,6 @@ export const CandidateRegistrationModal: React.FC<CandidateRegistrationModalProp
           preferredCity2
         })
       });
-      const data = await res.json();
       if (data.success && data.admitCard) {
         onSuccess(data.admitCard);
         onClose();

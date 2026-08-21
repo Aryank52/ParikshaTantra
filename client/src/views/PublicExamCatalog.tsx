@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, BookOpen, ExternalLink, Calendar, MapPin, Award, CheckCircle2, Info } from 'lucide-react';
 import { ExamCatalogEntry, StateMaster } from '../types';
+import { fetchApi } from '../services/api';
 
 export const PublicExamCatalog: React.FC = () => {
   const [exams, setExams] = useState<ExamCatalogEntry[]>([]);
@@ -25,8 +26,7 @@ export const PublicExamCatalog: React.FC = () => {
       if (selectedLevel !== 'ALL') params.append('level', selectedLevel);
       if (selectedState !== 'ALL') params.append('state', selectedState);
 
-      const res = await fetch(`http://localhost:5000/api/catalog/exams?${params.toString()}`);
-      const data = await res.json();
+      const data = await fetchApi(`/catalog/exams?${params.toString()}`);
       if (data.success) {
         setExams(data.data);
       }
@@ -39,8 +39,7 @@ export const PublicExamCatalog: React.FC = () => {
 
   const fetchStates = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/catalog/states');
-      const data = await res.json();
+      const data = await fetchApi('/catalog/states');
       if (data.success) {
         setStates(data.data);
       }

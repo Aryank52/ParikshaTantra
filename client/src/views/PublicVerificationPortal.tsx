@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { QrCode, Search, ShieldCheck, AlertCircle, CheckCircle2, Award, Lock, FileCheck2 } from 'lucide-react';
+import { fetchApi } from '../services/api';
 
 export const PublicVerificationPortal: React.FC = () => {
   const [queryCode, setQueryCode] = useState<string>('VERIFY-3A4B5C6D7E8F90A1');
@@ -16,8 +17,7 @@ export const PublicVerificationPortal: React.FC = () => {
       setError(null);
       setResult(null);
 
-      const res = await fetch(`http://localhost:5000/api/results/verify/${encodeURIComponent(queryCode.trim())}`);
-      const data = await res.json();
+      const data = await fetchApi(`/results/verify/${encodeURIComponent(queryCode.trim())}`);
 
       if (data.success && data.certificate) {
         setResult(data.certificate);
