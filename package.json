@@ -16,7 +16,8 @@
     "test": "npm --prefix client test --if-present && npm --prefix server test --if-present",
     "prisma:generate": "npm --prefix server run prisma:generate",
     "prisma:validate": "npm --prefix server run prisma:validate",
-    "db:seed": "npm --prefix server run db:seed"
+    "db:seed": "npm --prefix server run db:seed",
+    "seed:demo": "npm --prefix server run seed:demo"
   },
   "devDependencies": {}
 }

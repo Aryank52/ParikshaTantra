@@ -115,7 +115,7 @@ router.post(
     const timeWindow = Math.floor(releasedAt.getTime() / (CONFIG.ACTIVATION_TOKEN_EXPIRY_MINUTES * 60 * 1000));
     const expiresAt = new Date(releasedAt.getTime() + CONFIG.ACTIVATION_TOKEN_EXPIRY_MINUTES * 60000);
 
-    const generatedActivations = [];
+    const generatedActivations: any[] = [];
 
     for (const centre of centres) {
       const derivedToken = CryptoService.generateActivationToken(
