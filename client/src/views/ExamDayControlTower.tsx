@@ -1,32 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Radio, ShieldAlert, Activity, CheckCircle2, AlertTriangle, Users, 
-  MapPin, Clock, RefreshCw, Zap, Lock, Eye, Server, Cpu, Globe, Flame
+  MapPin, Clock, RefreshCw, Zap, Lock, Eye, Server, Cpu, Globe, Flame, Shield, ArrowRight
 } from 'lucide-react';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export const ExamDayControlTower: React.FC = () => {
+  const { user, token, switchUser } = useAuth();
   const [metrics, setMetrics] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedStateFilter, setSelectedStateFilter] = useState<string>('ALL');
   const [freezeMessage, setFreezeMessage] = useState<string>('');
-
-  useEffect(() => {
-    fetchMetrics();
-    const interval = setInterval(fetchMetrics, 8000);
-    return () => clearInterval(interval);
-  }, []);
+  const intervalRef = useRef<any>(null);
 
   const fetchMetrics = async () => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const data = await api.get('/control-tower/metrics');
       setMetrics(data);
-    } catch (err) {
-      console.error('Failed to load control tower metrics', err);
+    } catch (err: any) {
+      if (err?.status === 401 || err?.isAuthError) {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!user || !token) {
+      setLoading(false);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      return;
+    }
+
+    fetchMetrics();
+    intervalRef.current = setInterval(fetchMetrics, 8000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [user, token]);
 
   const handleGlobalFreeze = async () => {
     if (!window.confirm('CRITICAL ACTION: Execute Emergency Global Exam Freeze across all centres?')) return;
@@ -41,6 +59,29 @@ export const ExamDayControlTower: React.FC = () => {
       setFreezeMessage(`❌ Freeze failed: ${err.message}`);
     }
   };
+
+  if (!user || !token) {
+    return (
+      <div className="p-8 max-w-4xl mx-auto space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-4 shadow-2xl">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-950/60 border border-rose-500/40 flex items-center justify-center text-rose-400">
+            <Radio className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold font-mono text-slate-100">AUTHENTICATION REQUIRED FOR CONTROL TOWER</h2>
+          <p className="text-xs text-slate-400 max-w-md mx-auto">
+            National Exam Day telemetry and live multi-state command monitoring are restricted to authorized examination officials.
+          </p>
+          <button
+            onClick={() => switchUser('national_admin')}
+            className="px-6 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-mono font-bold text-xs rounded-xl shadow-lg shadow-rose-500/20 inline-flex items-center space-x-2 transition-all"
+          >
+            <span>Authenticate as National Authority</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading && !metrics) {
     return (

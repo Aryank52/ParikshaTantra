@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Landmark, Building2, MapPin, CheckCircle2, ShieldAlert, Users, Server } from 'lucide-react';
+import { Landmark, Building2, MapPin, CheckCircle2, ShieldAlert, Users, Server, Shield, ArrowRight } from 'lucide-react';
 import { fetchApi } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export const StateDistrictPortalView: React.FC = () => {
+  const { user, token, switchUser } = useAuth();
   const [centres, setCentres] = useState<any[]>([]);
   const [selectedState, setSelectedState] = useState('ALL');
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const data = await fetchApi('/centres');
@@ -20,8 +26,35 @@ export const StateDistrictPortalView: React.FC = () => {
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (user && token) {
+      loadData();
+    } else {
+      setLoading(false);
+    }
+  }, [user, token]);
+
+  if (!user || !token) {
+    return (
+      <div className="p-8 max-w-4xl mx-auto space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-4 shadow-2xl">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-indigo-950/60 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
+            <Landmark className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold font-mono text-slate-100">AUTHENTICATION REQUIRED FOR STATE / DISTRICT PORTAL</h2>
+          <p className="text-xs text-slate-400 max-w-md mx-auto">
+            State and District examination center oversight and telemetry feeds require authenticated governance credentials.
+          </p>
+          <button
+            onClick={() => switchUser('national_admin')}
+            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-mono font-bold text-xs rounded-xl shadow-lg shadow-indigo-500/20 inline-flex items-center space-x-2 transition-all"
+          >
+            <span>Authenticate as Authority</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const filteredCentres = centres.filter(
     (c) => selectedState === 'ALL' || c.state.toLowerCase() === selectedState.toLowerCase()

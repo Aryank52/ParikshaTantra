@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Monitor, Clock, ShieldCheck, Wifi, CheckCircle2, Bookmark, Send, AlertOctagon, Lock, FileText, Download, UserCheck, UserPlus, QrCode } from 'lucide-react';
+import { Monitor, Clock, ShieldCheck, Wifi, CheckCircle2, Bookmark, Send, AlertOctagon, Lock, FileText, Download, UserCheck, UserPlus, QrCode, Shield, ArrowRight } from 'lucide-react';
 import { fetchApi } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { Question } from '../types';
 import { CandidateRegistrationModal } from './CandidateRegistrationModal';
 
 export const CandidateCBT: React.FC = () => {
+  const { user, token, switchUser } = useAuth();
   const [selectedExamCode, setSelectedExamCode] = useState('EXAM-NEET-2026');
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [sessionStatus, setSessionStatus] = useState<'LOBBY' | 'IN_PROGRESS' | 'SUBMITTED' | 'FROZEN'>('LOBBY');
@@ -31,6 +33,7 @@ export const CandidateCBT: React.FC = () => {
 
   // Fetch Candidate Admit Card
   const loadAdmitCard = async () => {
+    if (!token) return;
     try {
       const data = await fetchApi('/candidate/admit-card/CAND-2026-001');
       setAdmitCardData(data);
@@ -40,8 +43,10 @@ export const CandidateCBT: React.FC = () => {
   };
 
   useEffect(() => {
-    loadAdmitCard();
-  }, []);
+    if (user && token) {
+      loadAdmitCard();
+    }
+  }, [user, token]);
 
   // Initialize Session from Terminal
   const handleStartExam = async () => {

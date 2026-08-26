@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { FileUp, FileCheck2, UploadCloud, CheckCircle2, ShieldCheck, Hash, Search } from 'lucide-react';
+import { FileUp, FileCheck2, UploadCloud, CheckCircle2, ShieldCheck, Hash, Search, Shield, ArrowRight } from 'lucide-react';
 import { fetchApi } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export const AnswerSheetUploadView: React.FC = () => {
+  const { user, token, switchUser } = useAuth();
   const [examCode, setExamCode] = useState('EXAM-NEET-2026');
   const [centreCode, setCentreCode] = useState('CENTRE-DELHI-01');
   const [candidateRoll, setCandidateRoll] = useState('2026-NEET-99481');
@@ -15,6 +17,7 @@ export const AnswerSheetUploadView: React.FC = () => {
   const [recentScans, setRecentScans] = useState<any[]>([]);
 
   const loadScans = async () => {
+    if (!token) return;
     try {
       const data = await fetchApi('/paper/sheets');
       setRecentScans(data || []);
@@ -24,8 +27,33 @@ export const AnswerSheetUploadView: React.FC = () => {
   };
 
   useEffect(() => {
-    loadScans();
-  }, []);
+    if (user && token) {
+      loadScans();
+    }
+  }, [user, token]);
+
+  if (!user || !token) {
+    return (
+      <div className="p-8 max-w-4xl mx-auto space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-4 shadow-2xl">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-950/60 border border-amber-500/40 flex items-center justify-center text-amber-400">
+            <FileUp className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold font-mono text-slate-100">AUTHENTICATION REQUIRED FOR OMR SCAN WORKBENCH</h2>
+          <p className="text-xs text-slate-400 max-w-md mx-auto">
+            Tamper-evident OMR and descriptive physical answer sheet uploads require authenticated Centre Superintendent credentials.
+          </p>
+          <button
+            onClick={() => switchUser('centre_admin')}
+            className="px-6 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-mono font-bold text-xs rounded-xl shadow-lg shadow-amber-500/20 inline-flex items-center space-x-2 transition-all"
+          >
+            <span>Authenticate as Centre Official</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleUploadSheet = async (e: React.FormEvent) => {
     e.preventDefault();

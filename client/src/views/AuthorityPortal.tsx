@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Vault, ShieldCheck, CheckCircle2, AlertTriangle, Key, Plus, Lock, Send, RefreshCw, Layers } from 'lucide-react';
+import { Vault, ShieldCheck, CheckCircle2, AlertTriangle, Key, Plus, Lock, Send, RefreshCw, Layers, Shield, ArrowRight } from 'lucide-react';
 import { fetchApi } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { Question, Exam } from '../types';
 
 export const AuthorityPortal: React.FC = () => {
+  const { user, token, switchUser } = useAuth();
   const [activeTab, setActiveTab] = useState<'VAULT' | 'BLUEPRINT' | 'GLOBAL_RELEASE'>('VAULT');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
@@ -23,6 +25,10 @@ export const AuthorityPortal: React.FC = () => {
   const [releaseResults, setReleaseResults] = useState<any>(null);
 
   const loadData = async () => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const qRes = await fetchApi('/vault/questions');
@@ -39,8 +45,35 @@ export const AuthorityPortal: React.FC = () => {
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (user && token) {
+      loadData();
+    } else {
+      setLoading(false);
+    }
+  }, [user, token]);
+
+  if (!user || !token) {
+    return (
+      <div className="p-8 max-w-4xl mx-auto space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-4 shadow-2xl">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-blue-950/60 border border-blue-500/40 flex items-center justify-center text-blue-400">
+            <Vault className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold font-mono text-slate-100">AUTHENTICATION REQUIRED FOR QUESTION VAULT</h2>
+          <p className="text-xs text-slate-400 max-w-md mx-auto">
+            Zero-Trust 4-Eyes cryptographic question vaulting and exam blueprint synthesis require verified National Authority credentials.
+          </p>
+          <button
+            onClick={() => switchUser('national_admin')}
+            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-mono font-bold text-xs rounded-xl shadow-lg shadow-blue-500/20 inline-flex items-center space-x-2 transition-all"
+          >
+            <span>Authenticate as National Authority</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Create Question in DRAFT
   const handleCreateQuestion = async (e: React.FormEvent) => {

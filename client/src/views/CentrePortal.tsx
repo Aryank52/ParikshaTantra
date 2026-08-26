@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Building2, Key, MonitorCheck, CheckCircle2, ShieldAlert, Cpu } from 'lucide-react';
+import { Building2, Key, MonitorCheck, CheckCircle2, ShieldAlert, Cpu, Shield, ArrowRight } from 'lucide-react';
 import { fetchApi } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export const CentrePortal: React.FC = () => {
+  const { user, token, switchUser } = useAuth();
   const [centreData, setCentreData] = useState<any>(null);
   const [activationTokenInput, setActivationTokenInput] = useState('');
   const [selectedExamId, setSelectedExamId] = useState('EXAM-NAT-2026');
@@ -10,6 +12,10 @@ export const CentrePortal: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const loadCentre = async () => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       // Load Delhi Centre by default
@@ -23,8 +29,35 @@ export const CentrePortal: React.FC = () => {
   };
 
   useEffect(() => {
-    loadCentre();
-  }, []);
+    if (user && token) {
+      loadCentre();
+    } else {
+      setLoading(false);
+    }
+  }, [user, token]);
+
+  if (!user || !token) {
+    return (
+      <div className="p-8 max-w-4xl mx-auto space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-4 shadow-2xl">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-indigo-950/60 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
+            <Building2 className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold font-mono text-slate-100">AUTHENTICATION REQUIRED FOR CENTRE PORTAL</h2>
+          <p className="text-xs text-slate-400 max-w-md mx-auto">
+            Exam centre gateway activation, terminal diagnostics, and local LAN sync require verified Centre Administrator credentials.
+          </p>
+          <button
+            onClick={() => switchUser('centre_admin')}
+            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-mono font-bold text-xs rounded-xl shadow-lg shadow-indigo-500/20 inline-flex items-center space-x-2 transition-all"
+          >
+            <span>Authenticate as Centre Admin</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Centre Gateway Activation Execution
   const handleActivateGateway = async (e: React.FormEvent) => {
