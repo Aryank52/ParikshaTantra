@@ -9,6 +9,8 @@
     "lint": "tsc --noEmit",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
+    "test": "ts-node src/tests/system.test.ts",
+    "seed:demo": "ts-node src/seed.ts",
     "db:push": "prisma db push",
     "db:seed": "ts-node src/seed.ts",
     "prisma:generate": "prisma generate",

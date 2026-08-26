@@ -385,3 +385,14 @@ export async function seedDatabase() {
   console.log('✅ Pan-India State & District Ecosystem Seed Completed Successfully!');
 }
 
+if (process.argv[1]?.includes('seed') || (typeof require !== 'undefined' && require.main === module)) {
+  seedDatabase()
+    .catch((err) => {
+      console.error('Seed execution error:', err);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}
+
