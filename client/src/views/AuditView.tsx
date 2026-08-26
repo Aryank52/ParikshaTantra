@@ -1,14 +1,21 @@
 import { useState, useEffect } from 'react';
-import { FileCheck2, ShieldCheck, RefreshCw, AlertTriangle } from 'lucide-react';
+import { FileCheck2, ShieldCheck, RefreshCw, AlertTriangle, Shield, ArrowRight } from 'lucide-react';
 import { fetchApi } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { AuditEvent } from '../types';
 
 export const AuditView: React.FC = () => {
+  const { user, token, switchUser } = useAuth();
   const [logs, setLogs] = useState<AuditEvent[]>([]);
   const [integrityResult, setIntegrityResult] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [errorState, setErrorState] = useState<string | null>(null);
 
   const loadLogs = async () => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const logData = await fetchApi('/audit/logs');
@@ -16,16 +23,44 @@ export const AuditView: React.FC = () => {
 
       const verData = await fetchApi('/audit/verify-chain');
       setIntegrityResult(verData);
+      setErrorState(null);
     } catch (err: any) {
-      alert(err.message);
+      setErrorState(err.message || 'Failed to load audit ledger');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadLogs();
-  }, []);
+    if (user && token) {
+      loadLogs();
+    } else {
+      setLoading(false);
+    }
+  }, [user, token]);
+
+  if (!user || !token) {
+    return (
+      <div className="p-8 max-w-4xl mx-auto space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-4 shadow-2xl">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-950/60 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+            <FileCheck2 className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold font-mono text-slate-100">AUTHENTICATION REQUIRED FOR AUDIT LEDGER</h2>
+          <p className="text-xs text-slate-400 max-w-md mx-auto">
+            Access to immutable SHA-256 Merkle audit chains and forensic logs requires verified administrative credentials.
+          </p>
+          <button
+            onClick={() => switchUser('security_officer')}
+            className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/20 inline-flex items-center space-x-2 transition-all"
+          >
+            <span>Authenticate as Auditor / Officer</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">

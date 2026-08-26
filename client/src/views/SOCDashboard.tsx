@@ -1,28 +1,52 @@
-import React, { useState, useEffect } from 'react';
-import { Activity, ShieldAlert, AlertTriangle, Radio, Lock, MapPin, Zap, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Activity, ShieldAlert, AlertTriangle, Radio, Lock, MapPin, Zap, RefreshCw, Shield, ArrowRight } from 'lucide-react';
 import { fetchApi } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export const SOCDashboard: React.FC = () => {
+  const { user, token, wsConnected, switchUser } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [errorState, setErrorState] = useState<string | null>(null);
   const [freezeActionLoading, setFreezeActionLoading] = useState(false);
+  const intervalRef = useRef<any>(null);
 
   const loadData = async () => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const socData = await fetchApi('/soc/dashboard');
       setData(socData);
-    } catch (err) {
-      console.error(err);
+      setErrorState(null);
+    } catch (err: any) {
+      if (err?.status === 401 || err?.isAuthError) {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        setErrorState('SESSION_EXPIRED');
+      } else {
+        setErrorState(err.message || 'Failed to connect to SOC Backend');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    if (!user || !token) {
+      setLoading(false);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      return;
+    }
+
     loadData();
-    const interval = setInterval(loadData, 5000);
-    return () => clearInterval(interval);
-  }, []);
+    intervalRef.current = setInterval(loadData, 6000);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [user, token]);
 
   const handleEmergencyFreeze = async (targetType: string, targetId: string, reason: string) => {
     if (!window.confirm(`EMERGENCY WAR-ROOM CONTROL: Trigger ${targetType} Freeze for target ${targetId}?`)) return;
@@ -41,6 +65,29 @@ export const SOCDashboard: React.FC = () => {
     }
   };
 
+  if (!user || !token) {
+    return (
+      <div className="p-8 max-w-4xl mx-auto space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-4 shadow-2xl">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-red-950/60 border border-red-500/40 flex items-center justify-center text-red-400">
+            <ShieldAlert className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold font-mono text-slate-100">AUTHENTICATION REQUIRED FOR SOC TELEMETRY</h2>
+          <p className="text-xs text-slate-400 max-w-md mx-auto">
+            Real-time Security Operations Centre telemetry and Emergency War-Room controls are restricted to verified security personnel.
+          </p>
+          <button
+            onClick={() => switchUser('security_officer')}
+            className="px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white font-mono font-bold text-xs rounded-xl shadow-lg shadow-red-500/20 inline-flex items-center space-x-2 transition-all"
+          >
+            <span>Authenticate as Security Officer</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const cityMarkers = [
     { city: 'New Delhi (Dwarka)', centreCode: 'CENTRE-DELHI-01', coords: '28.5921, 77.0460', status: 'GREEN' },
     { city: 'Mumbai (BKC Powai)', centreCode: 'CENTRE-MUMBAI-02', coords: '19.0657, 72.8687', status: 'GREEN' },
@@ -55,7 +102,7 @@ export const SOCDashboard: React.FC = () => {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="glass-panel p-6 rounded-2xl border border-red-500/30 flex items-center justify-between shadow-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950">
+      <div className="glass-panel p-6 rounded-2xl border border-red-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950">
         <div className="flex items-center space-x-4">
           <div className="p-3 bg-red-500/10 border border-red-500/40 rounded-xl text-red-400 animate-pulse">
             <Activity className="w-8 h-8" />
@@ -64,7 +111,7 @@ export const SOCDashboard: React.FC = () => {
             <div className="flex items-center space-x-3">
               <h2 className="text-xl font-bold text-slate-100">National Security Operations Centre (SOC)</h2>
               <span className="text-xs px-2.5 py-0.5 rounded-full font-mono bg-red-500/20 text-red-300 border border-red-500/40 font-bold">
-                REAL-TIME THREAT MONITOR
+                {data ? 'LIVE TELEMETRY' : 'CONNECTING'}
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-1">
@@ -83,22 +130,41 @@ export const SOCDashboard: React.FC = () => {
         </button>
       </div>
 
+      {errorState && (
+        <div className="bg-red-950/70 border border-red-500/40 p-4 rounded-xl text-red-200 text-xs font-mono flex items-center space-x-2">
+          <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+          <span>SOC Telemetry notice: {errorState}</span>
+        </div>
+      )}
+
       {/* Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 font-mono text-xs">
         <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-2">
-          <div className="text-slate-400">Total Active Centres</div>
-          <div className="text-2xl font-black text-blue-400">{data?.summary?.totalCentres || 8}</div>
+          <div className="flex items-center justify-between text-slate-400">
+            <span>Total Active Centres</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-950 text-blue-300 font-bold">{data ? 'LIVE' : 'DEMO'}</span>
+          </div>
+          <div className="text-2xl font-black text-blue-400">{data?.summary?.totalCentres ?? 8}</div>
         </div>
         <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-2">
-          <div className="text-slate-400">Live Active Candidates</div>
-          <div className="text-2xl font-black text-emerald-400">{data?.summary?.activeCandidates || 1}</div>
+          <div className="flex items-center justify-between text-slate-400">
+            <span>Live Active Candidates</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 font-bold">{data ? 'LIVE' : 'DEMO'}</span>
+          </div>
+          <div className="text-2xl font-black text-emerald-400">{data?.summary?.activeCandidates ?? 1}</div>
         </div>
         <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-2">
-          <div className="text-slate-400">System Threat Level</div>
+          <div className="flex items-center justify-between text-slate-400">
+            <span>System Threat Level</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 font-bold">ZERO-TRUST</span>
+          </div>
           <div className="text-2xl font-black text-emerald-400">NORMAL (GREEN)</div>
         </div>
         <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-2">
-          <div className="text-slate-400">Audit Ledger Verification</div>
+          <div className="flex items-center justify-between text-slate-400">
+            <span>Audit Ledger Verification</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 font-bold">MERKLE</span>
+          </div>
           <div className="text-2xl font-black text-emerald-400">100% VALID</div>
         </div>
       </div>
@@ -153,11 +219,17 @@ export const SOCDashboard: React.FC = () => {
           </div>
 
           <div className="p-4 bg-slate-900/90 rounded-xl border border-slate-800 text-center space-y-1">
-            <div className="text-emerald-400 font-bold">WAR-ROOM BROADCASTER ACTIVE</div>
-            <div className="text-[10px] text-slate-500">WebSockets connected at ws://localhost:5000/ws</div>
+            <div className="flex items-center justify-center space-x-2">
+              <span className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`} />
+              <span className="text-emerald-400 font-bold">
+                {wsConnected ? 'WAR-ROOM BROADCASTER ACTIVE' : 'WEBSOCKET CONNECTING...'}
+              </span>
+            </div>
+            <div className="text-[10px] text-slate-500">Zero-Trust Real-Time Security WebSocket Channel</div>
           </div>
         </div>
       </div>
     </div>
   );
 };
+

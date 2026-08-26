@@ -37,14 +37,19 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : CONFIG.PORT;
 const HOST = '0.0.0.0';
 
 // CORS Origin Validation Middleware
+const defaultOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://parikshatantra.vercel.app',
+];
 const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
   ? process.env.CORS_ALLOWED_ORIGINS.split(',').map((o) => o.trim())
-  : ['http://localhost:3000', 'http://localhost:5173'];
+  : defaultOrigins;
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin) || defaultOrigins.includes(origin)) {
         callback(null, true);
       } else {
         callback(null, true); // Permissive fallback for demo sandbox evaluation

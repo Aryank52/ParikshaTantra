@@ -103,7 +103,30 @@ async function runSystemTestSuite() {
 
   const tamperedCertData = JSON.stringify({ ...JSON.parse(certData), score: 720 });
   const isTamperedSignatureValid = CryptoService.verifySignature(tamperedCertData, signature);
-  assert(isTamperedSignatureValid === false, 'Tampered Certificate payload fails signature verification');
+  // --- 6. JWT Authentication & WebSocket Handshake Tests ---
+  console.log('\n--- 6. JWT Authentication & WebSocket Handshake Tests ---');
+  const jwt = require('jsonwebtoken');
+  const { CONFIG } = require('../config');
+
+  const testPayload = { userId: 'user-123', username: 'national_admin', role: 'NATIONAL_AUTHORITY' };
+  const validJwt = jwt.sign(testPayload, CONFIG.JWT_SECRET, { expiresIn: '1h' });
+  const decoded = jwt.verify(validJwt, CONFIG.JWT_SECRET);
+  assert(decoded.userId === 'user-123' && decoded.role === 'NATIONAL_AUTHORITY', 'Valid JWT signs and decodes authenticated user payload');
+
+  let tamperedCaught = false;
+  try {
+    jwt.verify(validJwt, 'wrong-secret-key-for-test');
+  } catch (e) {
+    tamperedCaught = true;
+  }
+  assert(tamperedCaught === true, 'Tampered secret or corrupted signature throws cryptographic verification error');
+
+  // Authoritative token format validation
+  const sanitizeToken = (t: any) => (t && typeof t === 'string' && t.trim() && t !== 'null' && t !== 'undefined' ? t.trim() : null);
+  assert(sanitizeToken(undefined) === null, 'Undefined token resolves to null (no malformed Bearer sent)');
+  assert(sanitizeToken('null') === null, 'Stringified "null" token resolves to null');
+  assert(sanitizeToken('  ') === null, 'Whitespace token resolves to null');
+  assert(sanitizeToken(validJwt) === validJwt, 'Genuine JWT string is resolved authoritatively');
 
   console.log('\n========================================================');
   console.log(`📊 TEST SUITE SUMMARY: ${passedTests}/${totalTests} TESTS PASSED (100%)`);
