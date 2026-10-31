@@ -1,12 +1,11 @@
 import { Router, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { authenticateJwt, authorizeRoles, AuthenticatedRequest } from '../middleware/authMiddleware';
 import { LeakDetectionService } from '../services/leakDetectionService';
 import { CryptoService } from '../services/cryptoService';
 import { AuditLedgerService } from '../services/auditLedgerService';
+import { prisma } from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // POST /api/leak/analyze - Upload suspected leaked snippet/screenshot & run AI comparison
 router.post(

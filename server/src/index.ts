@@ -42,18 +42,30 @@ const defaultOrigins = [
   'http://localhost:5173',
   'https://parikshatantra.vercel.app',
 ];
+
+const isProduction = process.env.NODE_ENV === 'production';
 const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
   ? process.env.CORS_ALLOWED_ORIGINS.split(',').map((o) => o.trim())
-  : defaultOrigins;
+  : isProduction ? [] : defaultOrigins;
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin) || defaultOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(null, true); // Permissive fallback for demo sandbox evaluation
+      // Allow requests with no origin (mobile apps, curl, etc.)
+      if (!origin) {
+        return callback(null, true);
       }
+
+      // In production, only allow explicitly configured origins
+      if (isProduction && allowedOrigins.length === 0) {
+        return callback(new Error('CORS_ALLOWED_ORIGINS must be configured in production'));
+      }
+
+      if (allowedOrigins.includes(origin) || (!isProduction && defaultOrigins.includes(origin))) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`CORS policy violation: Origin ${origin} not allowed`));
     },
     credentials: true,
   })

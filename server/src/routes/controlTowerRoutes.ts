@@ -1,9 +1,8 @@
 import { Router, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { authenticateJwt, authorizeRoles, AuthenticatedRequest } from '../middleware/authMiddleware';
+import { prisma } from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // GET /api/control-tower/metrics - Aggregated National Exam Day Operations Data
 router.get(

@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
+import { prisma } from '../lib/prisma';
+import { registrationRateLimiter } from '../middleware/rateLimitMiddleware';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // POST /api/registration/eligibility-check
 router.post('/eligibility-check', async (req: Request, res: Response) => {
@@ -38,7 +38,7 @@ router.post('/eligibility-check', async (req: Request, res: Response) => {
 });
 
 // POST /api/registration/apply - Candidate Application Submission & Auto Admit Card Generation
-router.post('/apply', async (req: Request, res: Response) => {
+router.post('/apply', registrationRateLimiter, async (req: Request, res: Response) => {
   try {
     const { fullName, email, category, dob, qualification, examCatalogCode, preferredCity1, preferredCity2 } = req.body;
 

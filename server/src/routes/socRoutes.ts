@@ -1,11 +1,10 @@
 import { Router, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { authenticateJwt, authorizeRoles, AuthenticatedRequest } from '../middleware/authMiddleware';
 import { AuditLedgerService } from '../services/auditLedgerService';
 import { WebSocketService } from '../services/websocketService';
+import { prisma } from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // GET /api/soc/dashboard - SOC High-Density Operations & Metrics Summary
 router.get(

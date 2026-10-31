@@ -1,11 +1,10 @@
 import { Router, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { authenticateJwt, AuthenticatedRequest } from '../middleware/authMiddleware';
 import { CryptoService } from '../services/cryptoService';
 import { AuditLedgerService } from '../services/auditLedgerService';
+import { prisma } from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // POST /api/jit/request-questions - JIT Question Release Endpoint for Candidate Session
 router.post('/request-questions', authenticateJwt, async (req: AuthenticatedRequest, res: Response) => {

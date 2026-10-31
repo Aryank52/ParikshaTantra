@@ -1,10 +1,10 @@
 import { Router, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { authenticateJwt, authorizeRoles, AuthenticatedRequest } from '../middleware/authMiddleware';
+import { activationRateLimiter } from '../middleware/rateLimitMiddleware';
 import { AuditLedgerService } from '../services/auditLedgerService';
+import { prisma } from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 const getClientIp = (req: any): string => {
   if (typeof req.ip === 'string') return req.ip;
@@ -43,6 +43,7 @@ router.get('/:id', authenticateJwt, async (req: AuthenticatedRequest, res: Respo
 // POST /api/centres/activate - Secure Centre Gateway Activation Workflow
 router.post(
   '/activate',
+  activationRateLimiter,
   authenticateJwt,
   authorizeRoles('SUPER_ADMIN', 'NATIONAL_AUTHORITY', 'CENTRE_ADMIN', 'INVIGILATOR', 'EXAM_CONTROLLER'),
   async (req: AuthenticatedRequest, res: Response) => {

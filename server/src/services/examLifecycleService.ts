@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
 import { AuditLedgerService } from './auditLedgerService';
 import { WebSocketService } from './websocketService';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 export type ExamLifecycleState =
   | 'DRAFT'

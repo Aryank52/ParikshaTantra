@@ -1,10 +1,9 @@
 import { Router, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { authenticateJwt, AuthenticatedRequest } from '../middleware/authMiddleware';
 import { CryptoService } from '../services/cryptoService';
+import { prisma } from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // GET /api/candidate/admit-card/:candidateCode - Candidate Admit Card Details
 router.get('/admit-card/:candidateCode', authenticateJwt, async (req: AuthenticatedRequest, res: Response) => {

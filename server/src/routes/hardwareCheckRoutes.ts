@@ -1,8 +1,7 @@
-import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { Router, Response } from 'express';
+import { prisma } from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 /**
  * POST /api/hardware-check/log

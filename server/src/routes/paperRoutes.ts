@@ -1,9 +1,8 @@
-import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { Router, Response } from 'express';
 import crypto from 'crypto';
+import { prisma } from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 /**
  * POST /api/paper/upload-answer-sheet

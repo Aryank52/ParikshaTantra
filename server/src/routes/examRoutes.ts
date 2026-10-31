@@ -1,13 +1,12 @@
 import { Router, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { authenticateJwt, authorizeRoles, AuthenticatedRequest } from '../middleware/authMiddleware';
 import { CryptoService } from '../services/cryptoService';
 import { AuditLedgerService } from '../services/auditLedgerService';
 import { WebSocketService } from '../services/websocketService';
 import { CONFIG } from '../config';
+import { prisma } from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // GET /api/exams - List exams
 router.get('/', authenticateJwt, async (req: AuthenticatedRequest, res: Response) => {
