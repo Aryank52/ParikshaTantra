@@ -70,11 +70,16 @@
 - [ ] Cancel requests on component unmount (React integration needed)
 - [ ] Cancel requests on 401/logout (clear cache on auth error)
 
-### ⏳ Phase 0H: Error Boundaries + Consistent States
-- [ ] Create ErrorBoundary component
-- [ ] Wrap App routes in error boundaries
-- [ ] Standardize loading/empty/error states across views
-- [ ] Add skeleton loaders for async data
+### ✅ Phase 0H: Error Boundaries + Consistent States
+- [x] Created `ErrorBoundary` component (`client/src/components/ErrorBoundary.tsx`)
+- [x] Created `RouteErrorBoundary` component (`client/src/components/RouteErrorBoundary.tsx`)
+- [x] Created `ErrorState` component (`client/src/components/ErrorState.tsx`)
+- [x] Created `EmptyState` component (`client/src/components/EmptyState.tsx`)
+- [x] Created `LoadingState` component with multiple variants (`client/src/components/LoadingState.tsx`)
+- [x] Created `Skeleton` component with variants (`client/src/components/Skeleton.tsx`)
+- [ ] Wrap App routes in error boundaries (integration needed)
+- [ ] Standardize loading/empty/error states across views (integration needed)
+- [ ] Add skeleton loaders for async data (integration needed)
 
 ### ⏳ Phase 0I: Database Indexes/Migration Discipline
 - [ ] Add indexes for FK, status, date fields
@@ -155,6 +160,14 @@
 - `server/src/services/examLifecycleService.ts`
 - `server/src/seed.ts` (kept local instance for standalone script)
 
+### Frontend Components Added (Phase 0H)
+- `client/src/components/ErrorBoundary.tsx` - Global error boundary with fallback UI
+- `client/src/components/RouteErrorBoundary.tsx` - Route-level error boundary
+- `client/src/components/ErrorState.tsx` - Reusable error display component
+- `client/src/components/EmptyState.tsx` - Consistent empty states (no data, no results, no permission, etc.)
+- `client/src/components/LoadingState.tsx` - Multiple loading variants (spinner, dots, pulse, skeleton, page, inline)
+- `client/src/components/Skeleton.tsx` - Skeleton loaders for text, card, table, metric, avatar, list, card
+
 ---
 
 ## Verification Results
@@ -174,7 +187,6 @@
 
 1. Apply Phase 0C middleware selectively to routes (exam, centre, candidate, etc.)
 2. Implement Phase 0F Frontend: WebSocket reconnection logic
-3. Implement Phase 0H: Error Boundaries + Consistent States
-4. Implement Phase 0I: Database Indexes/Migration Discipline
-5. Implement Phase 0J: CI/CD Verification
-6. Implement Phase 0K: End-to-End Verification
+3. Implement Phase 0I: Database Indexes/Migration Discipline
+4. Implement Phase 0J: CI/CD Verification
+5. Implement Phase 0K: End-to-End Verification
