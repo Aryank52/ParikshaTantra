@@ -133,10 +133,30 @@ jobs:
           cd server
           npx prisma validate
 
-      - name: Apply DDL Database Push to Disposable PostgreSQL CI Service
+      - name: Deploy Prisma Migrations to Disposable PostgreSQL CI Service
         run: |
           cd server
-          npx prisma db push
+          npx prisma migrate deploy
+
+      - name: Migration Review Gate - Detect Suspicious Operations
+        run: |
+          cd server
+          echo "🔍 Scanning migrations for suspicious operations..."
+          SUSPICIOUS=0
+          for f in prisma/migrations/*/migration.sql; do
+            echo "Checking $f..."
+            if grep -qiE "DROP TABLE|DROP COLUMN|DROP SCHEMA|TRUNCATE|ALTER TABLE.*DROP" "$f"; then
+              echo "⚠️  SUSPICIOUS OPERATION DETECTED in $f:"
+              grep -iE "DROP TABLE|DROP COLUMN|DROP SCHEMA|TRUNCATE|ALTER TABLE.*DROP" "$f"
+              SUSPICIOUS=1
+            fi
+          done
+          if [ $SUSPICIOUS -eq 1 ]; then
+            echo "❌ Migration review failed: Suspicious operations detected"
+            exit 1
+          else
+            echo "✅ Migration review passed: No suspicious operations detected"
+          fi
 
       - name: Verify Database Master & Demo Seed Execution
         run: |
