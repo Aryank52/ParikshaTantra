@@ -222,4 +222,106 @@ router.post(
   }
 );
 
+// GET /api/exams/:id/centres - List centres activated or allocated for this exam with readiness status
+router.get(
+  '/:id/centres',
+  authenticateJwt,
+  authorizeRoles('SUPER_ADMIN', 'NATIONAL_AUTHORITY', 'STATE_AUTHORITY', 'DISTRICT_AUTHORITY', 'EXAM_CONTROLLER', 'AUDITOR'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    const id = req.params.id as string;
+    try {
+      const exam = await prisma.exam.findFirst({
+        where: { OR: [{ id }, { examCode: id }] },
+      });
+      if (!exam) return res.status(404).json({ error: 'Exam not found' });
+
+      // Find all activations for this exam
+      const activations = await prisma.centreActivation.findMany({
+        where: { examId: exam.id, isValid: true },
+        include: {
+          centre: {
+            include: {
+              devices: true,
+              candidateSessions: { where: { examId: exam.id } },
+            },
+          },
+        },
+      });
+
+      // Find all centres in system if none activated yet
+      let centresList: any[] = [];
+      if (activations.length > 0) {
+        centresList = activations.map((a) => ({
+          activationId: a.id,
+          activationToken: a.activationToken,
+          expiresAt: a.expiresAt,
+          usedAt: a.usedAt,
+          centre: a.centre,
+        }));
+      } else {
+        const allCentres = await prisma.examCentre.findMany({
+          include: { devices: true, candidateSessions: { where: { examId: exam.id } } },
+        });
+        centresList = allCentres.map((c) => ({
+          activationId: null,
+          activationToken: null,
+          expiresAt: null,
+          usedAt: null,
+          centre: c,
+        }));
+      }
+
+      return res.json({
+        examId: exam.id,
+        examCode: exam.examCode,
+        title: exam.title,
+        status: exam.status,
+        totalCentres: centresList.length,
+        centres: centresList,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || 'Failed to retrieve exam centres' });
+    }
+  }
+);
+
+// GET /api/exams/:id/devices - List devices authorized across centres for this exam
+router.get(
+  '/:id/devices',
+  authenticateJwt,
+  authorizeRoles('SUPER_ADMIN', 'NATIONAL_AUTHORITY', 'STATE_AUTHORITY', 'DISTRICT_AUTHORITY', 'EXAM_CONTROLLER', 'AUDITOR'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    const id = req.params.id as string;
+    try {
+      const exam = await prisma.exam.findFirst({
+        where: { OR: [{ id }, { examCode: id }] },
+      });
+      if (!exam) return res.status(404).json({ error: 'Exam not found' });
+
+      const devices = await prisma.registeredDevice.findMany({
+        include: {
+          centre: {
+            select: { id: true, centreCode: true, name: true, state: true, district: true },
+          },
+          candidateSessions: {
+            where: { examId: exam.id },
+            select: { id: true, sessionToken: true, status: true, candidate: { select: { fullName: true, candidateCode: true } } },
+            take: 1,
+          },
+        },
+        orderBy: [{ centre: { centreCode: 'asc' } }, { deviceId: 'asc' }],
+      });
+
+      return res.json({
+        examId: exam.id,
+        examCode: exam.examCode,
+        totalDevices: devices.length,
+        devices,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || 'Failed to retrieve exam devices' });
+    }
+  }
+);
+
 export default router;

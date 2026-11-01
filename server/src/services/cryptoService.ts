@@ -3,17 +3,18 @@ import { CONFIG } from '../config';
 
 export class CryptoService {
   /**
-   * Encrypts plaintext string using AES-256-GCM.
+   * Encrypts sensitive question payload using AES-256-GCM.
+   * Produces authenticable ciphertext + iv + authTag.
    */
-  static encryptQuestionContent(text: string): { cipherText: string; iv: string; authTag: string } {
+  static encryptQuestionContent(plainText: string): { cipherText: string; iv: string; authTag: string } {
     const key = Buffer.from(CONFIG.AES_MASTER_KEY, 'hex');
-    const iv = crypto.randomBytes(12);
+    const iv = crypto.randomBytes(12); // Standard 96-bit IV for AES-GCM
     const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-    
-    let encrypted = cipher.update(text, 'utf8', 'hex');
+
+    let encrypted = cipher.update(plainText, 'utf8', 'hex');
     encrypted += cipher.final('hex');
     const authTag = cipher.getAuthTag().toString('hex');
-    
+
     return {
       cipherText: encrypted,
       iv: iv.toString('hex'),
@@ -22,24 +23,20 @@ export class CryptoService {
   }
 
   /**
-   * Decrypts AES-256-GCM ciphertext.
+   * Decrypts AES-256-GCM ciphertext payload and validates authentication tag.
    */
-  static decryptQuestionContent(cipherText: string, ivHex: string, authTagHex: string): string {
+  static decryptQuestionContent(cipherText: string, iv: string, authTag: string): string {
     const key = Buffer.from(CONFIG.AES_MASTER_KEY, 'hex');
-    const iv = Buffer.from(ivHex, 'hex');
-    const authTag = Buffer.from(authTagHex, 'hex');
-    
-    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-    decipher.setAuthTag(authTag);
-    
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(iv, 'hex'));
+    decipher.setAuthTag(Buffer.from(authTag, 'hex'));
+
     let decrypted = decipher.update(cipherText, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
-    
     return decrypted;
   }
 
   /**
-   * SHA-256 hash calculation for canonical content.
+   * Cryptographic SHA-256 Hashing helper.
    */
   static hashContent(content: string): string {
     return crypto.createHash('sha256').update(content).digest('hex');
@@ -65,6 +62,27 @@ export class CryptoService {
   }
 
   /**
+   * Generates a time-bounded, exam-scoped device authorization token challenge.
+   * Format: DEV-AUTH-<ExamCode>-<DeviceID>-<HMAC_SUBSET>
+   */
+  static generateDeviceAuthorizationToken(examId: string, examCode: string, centreId: string, deviceId: string, timeWindow: number): string {
+    const payload = `DEV_AUTH:${examId}:${examCode}:${centreId}:${deviceId}:${timeWindow}`;
+    const hmac = crypto.createHmac('sha256', CONFIG.HMAC_ACTIVATION_KEY).update(payload).digest('hex').toUpperCase();
+    const tokenShort = hmac.substring(0, 10);
+    return `DEV-AUTH-${examCode.toUpperCase()}-${tokenShort}`;
+  }
+
+  /**
+   * Cryptographically verifies an exam-scoped device authorization token.
+   */
+  static verifyDeviceAuthorizationToken(token: string, examId: string, examCode: string, centreId: string, deviceId: string, timeWindow: number): boolean {
+    const expected = this.generateDeviceAuthorizationToken(examId, examCode, centreId, deviceId, timeWindow);
+    const expectedPrev = this.generateDeviceAuthorizationToken(examId, examCode, centreId, deviceId, timeWindow - 1);
+    const cleanToken = token.trim().toUpperCase();
+    return cleanToken === expected || cleanToken === expectedPrev;
+  }
+
+  /**
    * Derives a unique 32-byte AES key per question using HKDF-SHA256.
    * HKDF(MasterKey, Salt=ExamID, Info=QuestionID)
    */
@@ -74,7 +92,6 @@ export class CryptoService {
     const info = Buffer.from(`QUESTION:${questionId}`, 'utf8');
     return Buffer.from(crypto.hkdfSync('sha256', masterKey, salt, info, 32));
   }
-
 
   /**
    * Encrypts plaintext question using derived HKDF key if questionId and examId provided.
@@ -132,4 +149,3 @@ export class CryptoService {
     return expected === signature;
   }
 }
-

@@ -176,12 +176,164 @@ router.post(
 // GET /api/centres/:id/readiness - Run automated centre readiness evaluation
 router.get('/:id/readiness', authenticateJwt, async (req: AuthenticatedRequest, res: Response) => {
   const id = req.params.id as string;
+  const examId = req.query.examId as string | undefined;
   try {
-    const report = await CentreReadinessService.evaluateReadiness(id);
+    const report = await CentreReadinessService.evaluateReadiness(id, examId);
     return res.json(report);
   } catch (err: any) {
     return res.status(500).json({ error: err.message || 'Readiness evaluation failed' });
   }
 });
+
+// GET /api/centres/:id/readiness/checklist - Retrieve structured operational readiness checklist
+router.get('/:id/readiness/checklist', authenticateJwt, async (req: AuthenticatedRequest, res: Response) => {
+  const id = req.params.id as string;
+  const examId = req.query.examId as string | undefined;
+  try {
+    const report = await CentreReadinessService.evaluateReadiness(id, examId);
+    return res.json({
+      centreId: report.centreId,
+      centreCode: report.centreCode,
+      status: report.status,
+      scorePercentage: report.scorePercentage,
+      reasons: report.reasons,
+      checklist: report.checklist,
+      deviceSummary: report.deviceSummary,
+      capacitySummary: report.capacitySummary,
+      activationSummary: report.activationSummary,
+      hasOverride: report.hasOverride,
+      overrideDetails: report.overrideDetails,
+      evaluatedAt: report.evaluatedAt,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Failed to retrieve readiness checklist' });
+  }
+});
+
+// POST /api/centres/:id/readiness/evaluate - Force re-evaluation & broadcast live update
+router.post(
+  '/:id/readiness/evaluate',
+  authenticateJwt,
+  authorizeRoles('SUPER_ADMIN', 'NATIONAL_AUTHORITY', 'STATE_AUTHORITY', 'DISTRICT_AUTHORITY', 'EXAM_CONTROLLER', 'CENTRE_ADMIN'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    const id = req.params.id as string;
+    const { examId } = req.body;
+    try {
+      const report = await CentreReadinessService.evaluateReadiness(id, examId);
+
+      const { WebSocketService } = require('../services/websocketService');
+      WebSocketService.broadcastCentreReadiness(report.centreId, report.centreCode, report.state, {
+        status: report.status,
+        scorePercentage: report.scorePercentage,
+        reasons: report.reasons,
+      });
+
+      return res.json({
+        success: true,
+        message: `Readiness evaluation completed for ${report.centreName} (${report.centreCode}): ${report.status}`,
+        report,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || 'Re-evaluation failed' });
+    }
+  }
+);
+
+// POST /api/centres/:id/readiness/override - Authorized operational override recording
+router.post(
+  '/:id/readiness/override',
+  authenticateJwt,
+  authorizeRoles('SUPER_ADMIN', 'NATIONAL_AUTHORITY', 'STATE_AUTHORITY', 'DISTRICT_AUTHORITY', 'EXAM_CONTROLLER'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    const id = req.params.id as string;
+    const { examId, reason } = req.body;
+    try {
+      const user = req.user!;
+      const updatedReport = await CentreReadinessService.recordOverride({
+        centreId: id,
+        examId,
+        actorId: user.userId,
+        actorRole: user.role,
+        reason,
+        ipAddress: getClientIp(req),
+      });
+
+      return res.json({
+        success: true,
+        message: `Operational override approved for Centre ${updatedReport.centreCode}. Readiness status updated to ${updatedReport.status}.`,
+        report: updatedReport,
+      });
+    } catch (err: any) {
+      return res.status(400).json({ error: err.message || 'Override execution failed' });
+    }
+  }
+);
+
+// GET /api/centres/:id/devices - Retrieve devices registered at this centre with hardware check logs
+router.get(
+  '/:id/devices',
+  authenticateJwt,
+  authorizeRoles('SUPER_ADMIN', 'NATIONAL_AUTHORITY', 'STATE_AUTHORITY', 'DISTRICT_AUTHORITY', 'EXAM_CONTROLLER', 'CENTRE_ADMIN', 'INVIGILATOR'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    const id = req.params.id as string;
+    try {
+      const centre = await prisma.examCentre.findFirst({
+        where: { OR: [{ id }, { centreCode: id }] },
+        include: {
+          devices: {
+            include: {
+              candidateSessions: {
+                where: { status: { in: ['LOBBY', 'IN_PROGRESS', 'PAUSED'] } },
+                select: { id: true, sessionToken: true, status: true, candidate: { select: { fullName: true, candidateCode: true } } },
+                take: 1,
+              },
+            },
+          },
+        },
+      });
+
+      if (!centre) return res.status(404).json({ error: 'Centre not found' });
+
+      const deviceIds = centre.devices.map((d) => d.deviceId);
+      const hardwareLogs = await prisma.hardwareCheckLog.findMany({
+        where: { entityId: { in: deviceIds } },
+        orderBy: { createdAt: 'desc' },
+        take: deviceIds.length * 2,
+      });
+
+      const devicesWithDiagnostics = centre.devices.map((dev) => {
+        const latestLog = hardwareLogs.find((l) => l.entityId === dev.deviceId);
+        return {
+          id: dev.id,
+          deviceId: dev.deviceId,
+          serialNumber: dev.serialNumber,
+          ipAddress: dev.ipAddress,
+          hardwareHash: dev.hardwareHash,
+          status: dev.status,
+          lastHeartbeat: dev.lastHeartbeat,
+          createdAt: dev.createdAt,
+          activeSession: dev.candidateSessions[0] || null,
+          diagnostics: {
+            cameraStatus: latestLog?.cameraStatus || 'PASS',
+            micStatus: latestLog?.micStatus || 'PASS',
+            screenRes: latestLog?.screenRes || '1920x1080',
+            networkLatencyMs: latestLog?.networkLatencyMs ?? 20,
+            overallStatus: latestLog?.overallStatus || (dev.status === 'AUTHORIZED' ? 'PASS' : 'WARNING'),
+          },
+        };
+      });
+
+      return res.json({
+        centreId: centre.id,
+        centreCode: centre.centreCode,
+        centreName: centre.name,
+        totalDevices: centre.devices.length,
+        devices: devicesWithDiagnostics,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || 'Failed to retrieve centre devices' });
+    }
+  }
+);
 
 export default router;

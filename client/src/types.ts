@@ -296,3 +296,110 @@ export interface ControlTowerSession {
     status: string;
   };
 }
+
+
+export type ReadinessChecklistCategory =
+  | 'IDENTITY'
+  | 'EXAM_ASSIGNMENT'
+  | 'ACTIVATION'
+  | 'DEVICE'
+  | 'HARDWARE'
+  | 'CONNECTIVITY'
+  | 'SECURITY'
+  | 'ALLOCATION';
+
+export type ReadinessSeverity = 'BLOCKING' | 'DEGRADED' | 'INFORMATIONAL';
+export type ReadinessItemStatus = 'READY' | 'WARNING' | 'FAILED';
+
+export interface ReadinessChecklistItem {
+  id: string;
+  code: string;
+  label: string;
+  category: ReadinessChecklistCategory;
+  status: ReadinessItemStatus;
+  severity: ReadinessSeverity;
+  details: string;
+  remedyAction?: string;
+  overrideRoleRequired?: string;
+}
+
+export interface CentreReadinessEvaluation {
+  centreId: string;
+  centreCode: string;
+  name: string;
+  state: string;
+  district: string;
+  status: 'READY' | 'DEGRADED' | 'BLOCKED';
+  scorePercentage: number;
+  evalTimestamp: string;
+  checklist: ReadinessChecklistItem[];
+  blockingFailures: number;
+  warnings: number;
+  reasons: string[];
+  deviceSummary: {
+    total: number;
+    authorized: number;
+    pending: number;
+    suspended: number;
+    quarantined: number;
+    offline: number;
+  };
+  activationSummary: {
+    isActivated: boolean;
+    tokenPreview?: string;
+    expiresAt?: string;
+  };
+  hardwareSummary: {
+    totalChecks: number;
+    cameraPassCount: number;
+    micPassCount: number;
+    screenResPassCount: number;
+    storagePassCount: number;
+  };
+  candidateAllocation: {
+    allocatedCount: number;
+    capacity: number;
+    utilizationPct: number;
+  };
+  activeOverride?: {
+    id: string;
+    role: string;
+    reason: string;
+    timestamp: string;
+  } | null;
+}
+
+export type DeviceLifecycleStatus =
+  | 'REGISTERED'
+  | 'PENDING_AUTHORIZATION'
+  | 'AUTHORIZED'
+  | 'SUSPENDED'
+  | 'REVOKED'
+  | 'QUARANTINED'
+  | 'OFFLINE';
+
+export interface RegisteredDevice {
+  id: string;
+  deviceId: string;
+  centreId: string;
+  serialNumber: string;
+  ipAddress: string;
+  hardwareHash: string;
+  status: DeviceLifecycleStatus;
+  lastHeartbeat: string;
+  createdAt: string;
+  centre?: {
+    id: string;
+    centreCode: string;
+    name: string;
+    state?: string;
+    district?: string;
+  };
+}
+
+export interface OperationalOverridePayload {
+  centreId: string;
+  examId?: string;
+  reason: string;
+  blockingChecksIgnored?: string[];
+}

@@ -30,6 +30,7 @@ import controlTowerRoutes from './routes/controlTowerRoutes';
 import paperRoutes from './routes/paperRoutes';
 import hardwareCheckRoutes from './routes/hardwareCheckRoutes';
 import aiRoutes from './routes/aiRoutes';
+import deviceRoutes from './routes/deviceRoutes';
 
 const app = express();
 const server = http.createServer(app);
@@ -148,6 +149,7 @@ app.use('/api/control-tower', controlTowerRoutes);
 app.use('/api/paper', paperRoutes);
 app.use('/api/hardware-check', hardwareCheckRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/devices', deviceRoutes);
 
 // Structured Central Error Handling Middleware
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

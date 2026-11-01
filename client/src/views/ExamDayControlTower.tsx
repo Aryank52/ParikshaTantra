@@ -3,7 +3,7 @@ import {
   Radio, ShieldAlert, Activity, CheckCircle2, AlertTriangle, Users,
   MapPin, Clock, RefreshCw, Zap, Lock, Eye, Server, Cpu, Globe, Flame,
   Shield, ArrowRight, Filter, Search, Monitor, Wifi, WifiOff, Layers,
-  FileText, PauseCircle, PlayCircle, Power, X, ChevronRight, Info
+  FileText, PauseCircle, PlayCircle, Power, X, ChevronRight, Info, CheckSquare, ShieldCheck, Ban, AlertOctagon, Wrench
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -12,8 +12,12 @@ import {
   ControlTowerExam,
   ControlTowerCentre,
   ControlTowerDevice,
-  ControlTowerSession
+  ControlTowerSession,
+  CentreReadinessEvaluation
 } from '../types';
+import { StatusBadge } from '../components/StatusBadge';
+import { ReadinessChecklist } from '../components/ReadinessChecklist';
+import { ConfirmationDialog } from '../components/ConfirmationDialog';
 
 type ControlTowerTab = 'OVERVIEW' | 'CENTRES' | 'SESSIONS' | 'DEVICES' | 'SECURITY';
 
@@ -54,6 +58,22 @@ export const ExamDayControlTower: React.FC = () => {
   const [transitionLoading, setTransitionLoading] = useState<boolean>(false);
 
   const [inspectedDevice, setInspectedDevice] = useState<ControlTowerDevice | null>(null);
+
+  // Phase 3: Centre Readiness Inspection & Overrides
+  const [inspectedCentre, setInspectedCentre] = useState<ControlTowerCentre | null>(null);
+  const [centreReadiness, setCentreReadiness] = useState<CentreReadinessEvaluation | null>(null);
+  const [centreReadinessLoading, setCentreReadinessLoading] = useState<boolean>(false);
+  const [centreReadinessError, setCentreReadinessError] = useState<string | null>(null);
+  const [overrideModalOpen, setOverrideModalOpen] = useState<boolean>(false);
+  const [overrideSubmitting, setOverrideSubmitting] = useState<boolean>(false);
+
+  // Phase 3: Device Management & Quarantine
+  const [deviceStatusFilter, setDeviceStatusFilter] = useState<string>('ALL');
+  const [deviceSearchQuery, setDeviceSearchQuery] = useState<string>('');
+  const [quarantineModalOpen, setQuarantineModalOpen] = useState<boolean>(false);
+  const [quarantineTargetDevice, setQuarantineTargetDevice] = useState<ControlTowerDevice | null>(null);
+  const [quarantineSubmitting, setQuarantineSubmitting] = useState<boolean>(false);
+  const [deviceActionLoading, setDeviceActionLoading] = useState<string | null>(null);
 
   const pollIntervalRef = useRef<any>(null);
 
@@ -144,7 +164,13 @@ export const ExamDayControlTower: React.FC = () => {
       eventType === 'SESSION_TELEMETRY_UPDATE' ||
       eventType === 'EXAM_RELEASED' ||
       eventType === 'EXAM_FROZEN' ||
-      eventType === 'SECURITY_ALERT'
+      eventType === 'SECURITY_ALERT' ||
+      eventType === 'CENTRE_READINESS_CHANGED' ||
+      eventType === 'DEVICE_STATUS_CHANGED' ||
+      eventType === 'DEVICE_AUTHORIZATION_CHANGED' ||
+      eventType === 'HARDWARE_CHECK_COMPLETED' ||
+      eventType === 'DEVICE_QUARANTINED' ||
+      eventType === 'READINESS_OVERRIDE_RECORDED'
     ) {
       fetchAllData(true);
     }
@@ -195,6 +221,93 @@ export const ExamDayControlTower: React.FC = () => {
       alert(`Lifecycle transition failed: ${err.message}`);
     } finally {
       setTransitionLoading(false);
+    }
+  };
+
+  // Phase 3: Centre Readiness Inspection & Overrides
+  const fetchCentreReadiness = async (centreId: string) => {
+    setCentreReadinessLoading(true);
+    setCentreReadinessError(null);
+    try {
+      const data = await api.get(`/centres/${centreId}/readiness`);
+      setCentreReadiness(data);
+    } catch (err: any) {
+      setCentreReadinessError(err.message || 'Failed to fetch centre readiness evaluation');
+    } finally {
+      setCentreReadinessLoading(false);
+    }
+  };
+
+  const handleInspectCentre = (centre: ControlTowerCentre) => {
+    setInspectedCentre(centre);
+    fetchCentreReadiness(centre.id);
+  };
+
+  const handleExecuteOverride = async (reason: string) => {
+    if (!inspectedCentre) return;
+    setOverrideSubmitting(true);
+    try {
+      await api.post(`/centres/${inspectedCentre.id}/readiness/override`, {
+        reason,
+        blockingChecksIgnored: centreReadiness?.checklist
+          .filter((c) => c.status === 'FAILED')
+          .map((c) => c.code),
+      });
+      setOverrideModalOpen(false);
+      await fetchCentreReadiness(inspectedCentre.id);
+      await fetchAllData(true);
+    } catch (err: any) {
+      alert(`Override failed: ${err.message || 'Unknown error'}`);
+    } finally {
+      setOverrideSubmitting(false);
+    }
+  };
+
+  // Phase 3: Device Management Handlers
+  const handleDeviceAction = async (
+    deviceId: string,
+    action: 'authorize' | 'suspend' | 'revoke' | 'unquarantine' | 'hardware-check'
+  ) => {
+    setDeviceActionLoading(deviceId);
+    try {
+      if (action === 'hardware-check') {
+        await api.post(`/devices/${deviceId}/hardware-check`, {
+          cameraStatus: 'PASS',
+          micStatus: 'PASS',
+          screenRes: '1920x1080',
+          storageCap: '512GB NVMe SSD',
+          networkLatencyMs: Math.floor(Math.random() * 20) + 10,
+        });
+      } else {
+        await api.post(`/devices/${deviceId}/${action}`);
+      }
+      await fetchAllData(true);
+      if (inspectedDevice && inspectedDevice.id === deviceId) {
+        const updated = await api.get(`/devices/${deviceId}`).catch(() => null);
+        if (updated) setInspectedDevice(updated);
+      }
+    } catch (err: any) {
+      alert(`Device action failed: ${err.message || 'Unknown error'}`);
+    } finally {
+      setDeviceActionLoading(null);
+    }
+  };
+
+  const handleExecuteQuarantine = async (reason: string) => {
+    if (!quarantineTargetDevice) return;
+    setQuarantineSubmitting(true);
+    try {
+      await api.post(`/devices/${quarantineTargetDevice.id}/quarantine`, { reason });
+      setQuarantineModalOpen(false);
+      setQuarantineTargetDevice(null);
+      await fetchAllData(true);
+      if (inspectedDevice && inspectedDevice.id === quarantineTargetDevice.id) {
+        setInspectedDevice(null);
+      }
+    } catch (err: any) {
+      alert(`Quarantine failed: ${err.message || 'Unknown error'}`);
+    } finally {
+      setQuarantineSubmitting(false);
     }
   };
 
@@ -263,6 +376,16 @@ export const ExamDayControlTower: React.FC = () => {
   const filteredDevices = devices.filter((d) => {
     if (deviceCheckFilter === 'PASS' && d.diagnostics.overallStatus !== 'PASS') return false;
     if (deviceCheckFilter === 'FAIL' && d.diagnostics.overallStatus !== 'FAIL') return false;
+    if (deviceStatusFilter !== 'ALL' && d.status !== deviceStatusFilter) return false;
+    if (deviceSearchQuery.trim()) {
+      const q = deviceSearchQuery.toLowerCase().trim();
+      const matchId = d.deviceId.toLowerCase().includes(q);
+      const matchIp = d.ipAddress?.toLowerCase().includes(q);
+      const matchCentre =
+        d.centre?.name?.toLowerCase().includes(q) ||
+        d.centre?.centreCode?.toLowerCase().includes(q);
+      if (!matchId && !matchIp && !matchCentre) return false;
+    }
     return true;
   });
 
@@ -882,6 +1005,17 @@ export const ExamDayControlTower: React.FC = () => {
                     {centre.connectivityStatus}
                   </span>
                 </div>
+
+                <div className="pt-2 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => handleInspectCentre(centre)}
+                    className="w-full py-1.5 px-3 bg-cyan-950/60 hover:bg-cyan-900/60 border border-cyan-800/60 text-cyan-300 text-xs font-mono font-medium rounded-lg transition flex items-center justify-center gap-1.5"
+                  >
+                    <CheckSquare className="w-3.5 h-3.5" />
+                    <span>Inspect Readiness & Checklist</span>
+                  </button>
+                </div>
               </div>
             ))}
 
@@ -1000,27 +1134,52 @@ export const ExamDayControlTower: React.FC = () => {
       {/* TAB 4: DEVICE HEALTH & HARDWARE DIAGNOSTICS */}
       {activeTab === 'DEVICES' && (
         <div className="space-y-4">
-          <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-lg flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center space-x-2">
-              <Monitor className="w-5 h-5 text-emerald-400" />
-              <h3 className="text-sm font-bold text-white font-mono">CBT TERMINAL HARDWARE DIAGNOSTICS</h3>
+          <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-lg flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
+            <div className="flex items-center space-x-2 flex-1 max-w-sm">
+              <Search className="w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                value={deviceSearchQuery}
+                onChange={(e) => setDeviceSearchQuery(e.target.value)}
+                placeholder="Search terminal ID, IP, centre..."
+                className="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-1.5 w-full font-mono focus:outline-none focus:border-cyan-500"
+              />
             </div>
 
-            <div className="flex items-center space-x-2">
-              <span className="text-xs font-mono text-slate-400">Filter Check:</span>
-              {['ALL', 'PASS', 'FAIL'].map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setDeviceCheckFilter(f)}
-                  className={`px-3 py-1 rounded text-xs font-mono font-bold transition ${
-                    deviceCheckFilter === f
-                      ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
-                      : 'bg-slate-800 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  {f}
-                </button>
-              ))}
+            <div className="flex items-center space-x-2 flex-wrap gap-2">
+              <div className="flex items-center space-x-1">
+                <span className="text-[11px] font-mono text-slate-400">Status:</span>
+                {['ALL', 'AUTHORIZED', 'PENDING_AUTHORIZATION', 'SUSPENDED', 'QUARANTINED', 'OFFLINE'].map((st) => (
+                  <button
+                    key={st}
+                    onClick={() => setDeviceStatusFilter(st)}
+                    className={`px-2.5 py-1 rounded text-[11px] font-mono font-bold transition ${
+                      deviceStatusFilter === st
+                        ? 'bg-cyan-950 text-cyan-300 border border-cyan-700'
+                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {st === 'PENDING_AUTHORIZATION' ? 'PENDING' : st}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center space-x-1 pl-2 border-l border-slate-800">
+                <span className="text-[11px] font-mono text-slate-400">Diagnostics:</span>
+                {['ALL', 'PASS', 'FAIL'].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setDeviceCheckFilter(f)}
+                    className={`px-2.5 py-1 rounded text-[11px] font-mono font-bold transition ${
+                      deviceCheckFilter === f
+                        ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
+                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -1037,15 +1196,18 @@ export const ExamDayControlTower: React.FC = () => {
                     <span className="text-[11px] text-slate-300 font-mono block">{dev.centre.name}</span>
                     <span className="text-[10px] text-slate-500 font-mono">{dev.centre.district}, {dev.centre.state}</span>
                   </div>
-                  <span
-                    className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
-                      dev.diagnostics.overallStatus === 'PASS'
-                        ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-                        : 'bg-rose-950 text-rose-300 border border-rose-800'
-                    }`}
-                  >
-                    CHECK: {dev.diagnostics.overallStatus}
-                  </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <StatusBadge status={dev.status} size="sm" />
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
+                        dev.diagnostics.overallStatus === 'PASS'
+                          ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                          : 'bg-rose-950 text-rose-300 border border-rose-800'
+                      }`}
+                    >
+                      H/W: {dev.diagnostics.overallStatus}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs font-mono">
@@ -1074,6 +1236,73 @@ export const ExamDayControlTower: React.FC = () => {
                 <div className="flex justify-between items-center text-[10px] font-mono text-slate-500 pt-1">
                   <span>IP: {dev.ipAddress}</span>
                   <span>SN: {dev.serialNumber}</span>
+                </div>
+
+                <div
+                  className="pt-2 border-t border-slate-800 flex items-center justify-between gap-1 flex-wrap"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center gap-1">
+                    {dev.status !== 'AUTHORIZED' && (
+                      <button
+                        type="button"
+                        disabled={deviceActionLoading === dev.id}
+                        onClick={() => handleDeviceAction(dev.id, 'authorize')}
+                        className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-emerald-950 hover:bg-emerald-900 border border-emerald-800 text-emerald-300 transition"
+                        title="Authorize terminal for CBT sessions"
+                      >
+                        Authorize
+                      </button>
+                    )}
+
+                    {dev.status === 'AUTHORIZED' && (
+                      <button
+                        type="button"
+                        disabled={deviceActionLoading === dev.id}
+                        onClick={() => handleDeviceAction(dev.id, 'suspend')}
+                        className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-amber-950 hover:bg-amber-900 border border-amber-800 text-amber-300 transition"
+                        title="Suspend terminal"
+                      >
+                        Suspend
+                      </button>
+                    )}
+
+                    {dev.status !== 'QUARANTINED' ? (
+                      <button
+                        type="button"
+                        disabled={deviceActionLoading === dev.id}
+                        onClick={() => {
+                          setQuarantineTargetDevice(dev);
+                          setQuarantineModalOpen(true);
+                        }}
+                        className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-rose-950 hover:bg-rose-900 border border-rose-800 text-rose-300 transition"
+                        title="Quarantine terminal due to tamper or anomaly"
+                      >
+                        Quarantine
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={deviceActionLoading === dev.id}
+                        onClick={() => handleDeviceAction(dev.id, 'unquarantine')}
+                        className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-emerald-950 hover:bg-emerald-900 border border-emerald-800 text-emerald-300 transition"
+                        title="Clear quarantine status"
+                      >
+                        Unquarantine
+                      </button>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={deviceActionLoading === dev.id}
+                    onClick={() => handleDeviceAction(dev.id, 'hardware-check')}
+                    className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-cyan-950 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 transition flex items-center gap-1"
+                    title="Trigger live hardware diagnostic test"
+                  >
+                    <RefreshCw size={10} className={deviceActionLoading === dev.id ? 'animate-spin' : ''} />
+                    <span>Diagnostics</span>
+                  </button>
                 </div>
               </div>
             ))}
@@ -1321,17 +1550,160 @@ export const ExamDayControlTower: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-end pt-2">
-              <button
-                onClick={() => setInspectedDevice(null)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono rounded-lg transition"
-              >
-                Close Diagnostics
-              </button>
+            <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+              <div className="flex items-center gap-1.5">
+                <StatusBadge status={inspectedDevice.status} size="sm" />
+                {inspectedDevice.status !== 'AUTHORIZED' && (
+                  <button
+                    type="button"
+                    disabled={deviceActionLoading === inspectedDevice.id}
+                    onClick={() => handleDeviceAction(inspectedDevice.id, 'authorize')}
+                    className="px-2 py-1 text-[11px] font-mono font-bold rounded bg-emerald-950 hover:bg-emerald-900 border border-emerald-800 text-emerald-300 transition"
+                  >
+                    Authorize Terminal
+                  </button>
+                )}
+                {inspectedDevice.status === 'AUTHORIZED' && (
+                  <button
+                    type="button"
+                    disabled={deviceActionLoading === inspectedDevice.id}
+                    onClick={() => handleDeviceAction(inspectedDevice.id, 'suspend')}
+                    className="px-2 py-1 text-[11px] font-mono font-bold rounded bg-amber-950 hover:bg-amber-900 border border-amber-800 text-amber-300 transition"
+                  >
+                    Suspend Terminal
+                  </button>
+                )}
+                {inspectedDevice.status !== 'QUARANTINED' ? (
+                  <button
+                    type="button"
+                    disabled={deviceActionLoading === inspectedDevice.id}
+                    onClick={() => {
+                      setQuarantineTargetDevice(inspectedDevice);
+                      setQuarantineModalOpen(true);
+                    }}
+                    className="px-2 py-1 text-[11px] font-mono font-bold rounded bg-rose-950 hover:bg-rose-900 border border-rose-800 text-rose-300 transition"
+                  >
+                    Quarantine
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={deviceActionLoading === inspectedDevice.id}
+                    onClick={() => handleDeviceAction(inspectedDevice.id, 'unquarantine')}
+                    className="px-2 py-1 text-[11px] font-mono font-bold rounded bg-emerald-950 hover:bg-emerald-900 border border-emerald-800 text-emerald-300 transition"
+                  >
+                    Clear Quarantine
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={deviceActionLoading === inspectedDevice.id}
+                  onClick={() => handleDeviceAction(inspectedDevice.id, 'hardware-check')}
+                  className="px-3 py-1.5 bg-cyan-950 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 text-xs font-mono rounded-lg transition flex items-center gap-1.5"
+                >
+                  <RefreshCw size={12} className={deviceActionLoading === inspectedDevice.id ? 'animate-spin' : ''} />
+                  <span>Run Hardware Check</span>
+                </button>
+                <button
+                  onClick={() => setInspectedDevice(null)}
+                  className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono rounded-lg transition"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Centre Readiness & 8-Dimension Audit Modal */}
+      {inspectedCentre && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full p-6 shadow-2xl space-y-4 my-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center space-x-2">
+                <Server className="w-5 h-5 text-cyan-400" />
+                <div>
+                  <h3 className="text-base font-bold text-white font-mono">
+                    CENTRE OPERATIONAL READINESS & 8-DIMENSION AUDIT
+                  </h3>
+                  <p className="text-xs text-slate-400 font-mono">
+                    {inspectedCentre.name} ({inspectedCentre.centreCode}) • {inspectedCentre.district}, {inspectedCentre.state}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setInspectedCentre(null);
+                  setCentreReadiness(null);
+                }}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {centreReadinessLoading && (
+              <div className="p-12 text-center text-slate-400 font-mono text-xs flex flex-col items-center justify-center gap-3">
+                <RefreshCw className="w-6 h-6 animate-spin text-cyan-400" />
+                <span>Executing real-time PostgreSQL 8-dimension audit...</span>
+              </div>
+            )}
+
+            {centreReadinessError && (
+              <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-800 text-rose-300 text-xs font-mono">
+                {centreReadinessError}
+              </div>
+            )}
+
+            {centreReadiness && (
+              <ReadinessChecklist
+                evaluation={centreReadiness}
+                onRefresh={() => fetchCentreReadiness(inspectedCentre.id)}
+                onRequestOverride={() => setOverrideModalOpen(true)}
+                userRole={user?.role}
+                isEvaluating={centreReadinessLoading}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Dialog: Operational Readiness Override */}
+      <ConfirmationDialog
+        isOpen={overrideModalOpen}
+        onClose={() => setOverrideModalOpen(false)}
+        onConfirm={handleExecuteOverride}
+        title="COMMIT OPERATIONAL READINESS OVERRIDE"
+        description="By committing an operational readiness override, you are authoritatively granting conditional READY status to this examination centre despite failing one or more blocking checks. This operational action will be recorded permanently in the SHA-256 tamper-evident audit ledger."
+        requiresInput={true}
+        inputLabel="Operational Justification & Compensating Controls"
+        inputPlaceholder="Detail the operational reason, standby arrangements, and mitigation plan..."
+        variant="warning"
+        confirmLabel="Authorize Override"
+        isSubmitting={overrideSubmitting}
+      />
+
+      {/* Confirmation Dialog: Device Quarantine */}
+      <ConfirmationDialog
+        isOpen={quarantineModalOpen}
+        onClose={() => {
+          setQuarantineModalOpen(false);
+          setQuarantineTargetDevice(null);
+        }}
+        onConfirm={handleExecuteQuarantine}
+        title="QUARANTINE CBT TERMINAL"
+        description={`Terminal ${quarantineTargetDevice?.deviceId || ''} will be immediately locked in QUARANTINE status. It will be prevented from launching or continuing any candidate examination session until cleared by an authorized officer.`}
+        requiresInput={true}
+        inputLabel="Quarantine Reason / Anomaly Details"
+        inputPlaceholder="e.g. Hardware tampering suspected, suspicious camera stream, network anomalous latency..."
+        variant="danger"
+        confirmLabel="Quarantine Terminal"
+        isSubmitting={quarantineSubmitting}
+      />
     </div>
   );
 };

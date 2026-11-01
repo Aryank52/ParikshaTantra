@@ -26,10 +26,73 @@ router.post('/start-session', authenticateJwt, async (req: AuthenticatedRequest,
   const device = await prisma.registeredDevice.findFirst({ where: { OR: [{ deviceId }, { id: deviceId }] } });
   if (!device) return res.status(404).json({ error: 'Terminal device not registered' });
 
+  // Zero-Trust Check 1: Terminal Device must be registered to this specific Centre
+  if (device.centreId !== centre.id) {
+    await AuditLedgerService.logEvent({
+      eventType: 'UNAUTHORIZED_CROSS_CENTRE_ACCESS',
+      actorId: candidate.id,
+      actorRole: 'CANDIDATE',
+      action: `REJECTED session initialization: Terminal ${device.deviceId} is bound to another centre, not ${centre.centreCode}`,
+      deviceId: device.id,
+      ipAddress: typeof req.ip === 'string' ? req.ip : '127.0.0.1',
+      metadata: { requestedCentreId: centre.id, actualCentreId: device.centreId },
+    });
+    return res.status(403).json({
+      error: 'DEVICE_CENTRE_MISMATCH',
+      message: `Security Violation: Terminal device '${deviceId}' is assigned to another examination centre.`,
+    });
+  }
+
+  // Zero-Trust Check 2: Strict Device Authorization State Validation
+  if (device.status === 'QUARANTINED') {
+    return res.status(403).json({
+      error: 'DEVICE_QUARANTINED',
+      message: `Terminal device '${deviceId}' has been QUARANTINED due to a hardware failure or security anomaly. Contact Chief Superintendent.`,
+    });
+  }
+
+  if (device.status === 'SUSPENDED') {
+    return res.status(403).json({
+      error: 'DEVICE_SUSPENDED',
+      message: `Terminal device '${deviceId}' is currently SUSPENDED for maintenance. Access denied.`,
+    });
+  }
+
+  if (device.status === 'REVOKED') {
+    return res.status(403).json({
+      error: 'DEVICE_REVOKED',
+      message: `Terminal device '${deviceId}' authorization has been permanently REVOKED. Access denied.`,
+    });
+  }
+
   if (device.status !== 'AUTHORIZED') {
     return res.status(403).json({
-      error: 'DEVICE_BLOCKED',
-      message: `Terminal device '${deviceId}' is in state '${device.status}'. Access denied.`,
+      error: 'DEVICE_UNAUTHORIZED',
+      message: `Terminal device '${deviceId}' is in state '${device.status}' and not authorized for exam delivery.`,
+    });
+  }
+
+  // Zero-Trust Check 3: Centre Gateway Activation Verification
+  const activation = await prisma.centreActivation.findFirst({
+    where: {
+      examId: exam.id,
+      centreId: centre.id,
+      isValid: true,
+    },
+  });
+
+  if (!activation) {
+    return res.status(403).json({
+      error: 'CENTRE_NOT_ACTIVATED',
+      message: `Access Denied: Centre Gateway for ${centre.name} has not been activated for examination ${exam.examCode}.`,
+    });
+  }
+
+  // Zero-Trust Check 4: Candidate Centre Allocation Match
+  if (candidate.allocatedCentreId && candidate.allocatedCentreId !== centre.id) {
+    return res.status(403).json({
+      error: 'CANDIDATE_CENTRE_MISMATCH',
+      message: `Security Violation: Candidate '${candidateCode}' is assigned to an examination centre other than ${centre.centreCode}.`,
     });
   }
 

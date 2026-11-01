@@ -11,6 +11,7 @@
     "dev": "ts-node src/index.ts",
     "test": "ts-node src/tests/system.test.ts",
     "test:e2e": "ts-node src/tests/e2eLifecycle.test.ts",
+    "test:readiness": "ts-node src/tests/centreReadiness.test.ts",
     "seed:demo": "ts-node src/seed.ts",
     "db:push": "prisma db push",
     "db:seed": "ts-node src/seed.ts",

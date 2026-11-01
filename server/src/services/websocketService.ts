@@ -28,6 +28,12 @@ export type WSEventType =
   | 'EXAM_STATE_CHANGED'
   | 'OPERATIONAL_ALERT'
   | 'CENTRE_STATUS_CHANGED'
+  | 'CENTRE_READINESS_CHANGED'
+  | 'DEVICE_STATUS_CHANGED'
+  | 'DEVICE_AUTHORIZATION_CHANGED'
+  | 'HARDWARE_CHECK_COMPLETED'
+  | 'DEVICE_QUARANTINED'
+  | 'READINESS_OVERRIDE_RECORDED'
   | 'SESSION_TELEMETRY_UPDATE'
   | 'CLIENT_JOINED'
   | 'CLIENT_LEFT';
@@ -350,6 +356,16 @@ export class WebSocketService {
   /**
    * Broadcasts real-time operational alerts to control tower rooms.
    */
+  /**
+   * Broadcasts an event to clients subscribed to a specific room.
+   */
+  static broadcastToRoom(room: string, event: { type: WSEventType; payload: any }) {
+    this.broadcast({
+      ...event,
+      targetRoom: room,
+    });
+  }
+
   static broadcastOperationalAlert(alert: any, targetRoom: string = 'national') {
     this.broadcast({
       type: 'OPERATIONAL_ALERT',
@@ -386,6 +402,33 @@ export class WebSocketService {
       type: 'SESSION_TELEMETRY_UPDATE',
       payload: { sessionId, status, ...payload, timestamp: Date.now() },
     });
+  }
+
+  static broadcastCentreReadiness(centreId: string, centreCode: string, state: string, payload: any = {}) {
+    const msg: { type: WSEventType; payload: any } = { type: 'CENTRE_READINESS_CHANGED',
+      payload: { centreId, centreCode, ...payload, timestamp: Date.now() },
+    };
+    this.broadcastToRoom('national', msg);
+    if (state) this.broadcastToRoom(`state:${state}`, msg);
+    if (centreCode) this.broadcastToRoom(`centre:${centreCode}`, msg);
+  }
+
+  static broadcastDeviceStatus(deviceId: string, centreCode: string, state: string, status: string, payload: any = {}) {
+    const msg: { type: WSEventType; payload: any } = { type: 'DEVICE_STATUS_CHANGED',
+      payload: { deviceId, centreCode, status, ...payload, timestamp: Date.now() },
+    };
+    this.broadcastToRoom('national', msg);
+    if (state) this.broadcastToRoom(`state:${state}`, msg);
+    if (centreCode) this.broadcastToRoom(`centre:${centreCode}`, msg);
+  }
+
+  static broadcastDeviceQuarantine(deviceId: string, centreCode: string, state: string, reason: string) {
+    const msg: { type: WSEventType; payload: any } = { type: 'DEVICE_QUARANTINED',
+      payload: { deviceId, centreCode, reason, status: 'QUARANTINED', timestamp: Date.now() },
+    };
+    this.broadcastToRoom('national', msg);
+    if (state) this.broadcastToRoom(`state:${state}`, msg);
+    if (centreCode) this.broadcastToRoom(`centre:${centreCode}`, msg);
   }
 
   /**
