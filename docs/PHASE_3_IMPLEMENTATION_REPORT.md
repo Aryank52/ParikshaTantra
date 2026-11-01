@@ -154,3 +154,4 @@ npm --prefix client run build
 ## 6. Conclusion & Next Phase Readiness
 
 ParikshaTantra Phase 3 is complete, fully tested, and ready for deployment. The platform guarantees that every examination centre and CBT terminal operating on exam day is verified, authorized, and continuously monitored against hardware tampering, network latency, and physical security anomalies.
+
