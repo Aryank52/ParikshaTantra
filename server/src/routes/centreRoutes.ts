@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { authenticateJwt, authorizeRoles, AuthenticatedRequest } from '../middleware/authMiddleware';
 import { activationRateLimiter } from '../middleware/rateLimitMiddleware';
 import { AuditLedgerService } from '../services/auditLedgerService';
+import { CentreReadinessService } from '../services/centreReadinessService';
 import { prisma } from '../lib/prisma';
 
 const router = Router();
@@ -162,7 +163,7 @@ router.post(
 router.get('/:id/readiness', authenticateJwt, async (req: AuthenticatedRequest, res: Response) => {
   const id = req.params.id as string;
   try {
-    const { CentreReadinessService } = await import('../services/centreReadinessService.js');
+
     const report = await CentreReadinessService.evaluateReadiness(id);
     return res.json(report);
   } catch (err: any) {

@@ -12,6 +12,7 @@ interface ConnectedClient {
   centreId?: string;
   candidateId?: string;
   deviceId?: string;
+  rooms?: Set<string>;
   lastPing?: number;
   connectedAt: number;
 }
@@ -160,9 +161,20 @@ export class WebSocketService {
           candidateId: parsed.candidateId,
           deviceId: parsed.deviceId,
         });
-      } else if (parsed.type === 'PING') {
-        // Client-initiated ping
-        client.socket.send(JSON.stringify({ type: 'PONG', timestamp: Date.now() }));
+      }
+    } else if (parsed.type === 'PING') {
+      // Client-initiated ping
+      client.socket.send(JSON.stringify({ type: 'PONG', timestamp: Date.now() }));
+    } else if (parsed.type === 'JOIN') {
+      if (parsed.room) {
+        if (!client.rooms) client.rooms = new Set();
+        client.rooms.add(parsed.room);
+        client.socket.send(JSON.stringify({ type: 'JOIN_ACK', room: parsed.room, timestamp: Date.now() }));
+      }
+    } else if (parsed.type === 'LEAVE') {
+      if (parsed.room && client.rooms) {
+        client.rooms.delete(parsed.room);
+        client.socket.send(JSON.stringify({ type: 'LEAVE_ACK', room: parsed.room, timestamp: Date.now() }));
       }
     }
   }
@@ -243,6 +255,7 @@ export class WebSocketService {
     payload: any;
     targetCentreId?: string;
     targetCandidateId?: string;
+    targetRoom?: string;
   }) {
     const payloadStr = JSON.stringify(event);
 
@@ -253,6 +266,9 @@ export class WebSocketService {
           continue;
         }
         if (event.targetCandidateId && client.candidateId && client.candidateId !== event.targetCandidateId) {
+          continue;
+        }
+        if (event.targetRoom && (!client.rooms || !client.rooms.has(event.targetRoom))) {
           continue;
         }
         client.socket.send(payloadStr);

@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { authenticateJwt, AuthenticatedRequest } from '../middleware/authMiddleware';
 import { CryptoService } from '../services/cryptoService';
+import { AuditLedgerService } from '../services/auditLedgerService';
 import { prisma } from '../lib/prisma';
 
 const router = Router();
@@ -62,7 +63,7 @@ router.post('/verify-attendance', authenticateJwt, async (req: AuthenticatedRequ
     },
   });
 
-  const { AuditLedgerService } = await import('../services/auditLedgerService.js');
+
   await AuditLedgerService.logEvent({
     eventType: 'CANDIDATE_CENTRE_VERIFIED',
     actorId: req.user!.userId,

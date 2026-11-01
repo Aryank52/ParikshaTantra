@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
   }, [token]);
 
-  // Authenticated WebSocket Lifecycle
+  // Authenticated WebSocket Lifecycle with Reconnect
   useEffect(() => {
     if (!user || !token) {
       setWsConnected(false);
@@ -74,54 +74,77 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     let socket: WebSocket | null = null;
     let isDisposed = false;
+    let reconnectTimer: any = null;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 8;
 
-    try {
-      const wsUrl =
-        import.meta.env.VITE_WS_URL ||
-        (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')
-          ? 'wss://parikshatantra.onrender.com/ws'
-          : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`);
+    const connect = () => {
+      if (isDisposed) return;
+      try {
+        const wsUrl =
+          import.meta.env.VITE_WS_URL ||
+          (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')
+            ? 'wss://parikshatantra.onrender.com/ws'
+            : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`);
 
-      socket = new WebSocket(wsUrl);
+        socket = new WebSocket(wsUrl);
 
-      socket.onopen = () => {
-        if (isDisposed) return;
-        setWsConnected(true);
-        // Transmit cryptographically verified JWT identity
-        socket?.send(
-          JSON.stringify({
-            type: 'IDENTIFY',
-            token,
-            role: user.role,
-            userId: user.id,
-            username: user.username,
-          })
-        );
-      };
+        socket.onopen = () => {
+          if (isDisposed) return;
+          reconnectAttempts = 0;
+          setWsConnected(true);
+          // Transmit cryptographically verified JWT identity
+          socket?.send(
+            JSON.stringify({
+              type: 'IDENTIFY',
+              token,
+              role: user.role,
+              userId: user.id,
+              username: user.username,
+            })
+          );
+        };
 
-      socket.onmessage = (event) => {
-        if (isDisposed) return;
-        try {
-          const parsed = JSON.parse(event.data);
-          if (parsed.type === 'EXAM_RELEASED' || parsed.type === 'EXAM_FROZEN' || parsed.type === 'SECURITY_ALERT') {
-            setSecurityNotice(parsed.payload?.message || parsed.payload?.title || 'Security alert received.');
+        socket.onmessage = (event) => {
+          if (isDisposed) return;
+          try {
+            const parsed = JSON.parse(event.data);
+            if (parsed.type === 'EXAM_RELEASED' || parsed.type === 'EXAM_FROZEN' || parsed.type === 'SECURITY_ALERT') {
+              setSecurityNotice(parsed.payload?.message || parsed.payload?.title || 'Security alert received.');
+            }
+          } catch (e) {}
+        };
+
+        socket.onerror = () => {
+          if (!isDisposed) setWsConnected(false);
+        };
+
+        socket.onclose = () => {
+          if (isDisposed) return;
+          setWsConnected(false);
+          if (reconnectAttempts < maxReconnectAttempts) {
+            const delay = Math.min(1000 * Math.pow(1.5, reconnectAttempts), 20000);
+            reconnectAttempts++;
+            reconnectTimer = setTimeout(connect, delay);
           }
-        } catch (e) {}
-      };
+        };
+      } catch (err) {
+        if (!isDisposed) {
+          setWsConnected(false);
+          if (reconnectAttempts < maxReconnectAttempts) {
+            const delay = Math.min(1000 * Math.pow(1.5, reconnectAttempts), 20000);
+            reconnectAttempts++;
+            reconnectTimer = setTimeout(connect, delay);
+          }
+        }
+      }
+    };
 
-      socket.onerror = () => {
-        if (!isDisposed) setWsConnected(false);
-      };
-
-      socket.onclose = () => {
-        if (!isDisposed) setWsConnected(false);
-      };
-    } catch (err) {
-      setWsConnected(false);
-    }
+    connect();
 
     return () => {
       isDisposed = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
       if (socket) {
         try {
           socket.close();

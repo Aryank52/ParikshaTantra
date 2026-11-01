@@ -53,17 +53,24 @@ router.post('/generate', authenticateJwt, async (req: AuthenticatedRequest, res:
 
 // GET /api/results/verify/:qrCode - PUBLIC QR Certificate Verification Endpoint (No Auth Required)
 router.get('/verify/:qrCode', async (req, res: Response) => {
-  const { qrCode } = req.params;
+  const code = (req.params.qrCode as string).trim().toUpperCase();
 
-  const certificate = await prisma.certificate.findUnique({
-    where: { qrVerificationCode: qrCode.trim().toUpperCase() },
+  const certificate = await prisma.certificate.findFirst({
+    where: {
+      OR: [
+        { qrVerificationCode: code },
+        { certificateNumber: code },
+      ],
+    },
     include: { candidate: true, exam: { include: { organization: true } } },
   });
 
   if (!certificate) {
     return res.status(404).json({
+      success: false,
       verified: false,
-      message: 'AUTHENTICATION FAILURE: Provided QR Verification Code is invalid or does not correspond to any issued official examination certificate.',
+      error: 'AUTHENTICATION FAILURE: Provided Verification Code does not correspond to any issued official examination certificate.',
+      message: 'AUTHENTICATION FAILURE: Provided Verification Code does not correspond to any issued official examination certificate.',
     });
   }
 
@@ -73,8 +80,7 @@ router.get('/verify/:qrCode', async (req, res: Response) => {
     certificate.signedHash
   );
 
-  return res.json({
-    verified: isSignatureValid,
+  const payload = {
     certificateNumber: certificate.certificateNumber,
     candidateName: certificate.candidate.fullName,
     candidateCode: certificate.candidate.candidateCode,
@@ -86,6 +92,13 @@ router.get('/verify/:qrCode', async (req, res: Response) => {
     issuedAt: certificate.issuedAt,
     digitalSignatureValid: isSignatureValid,
     verificationStatus: isSignatureValid ? 'OFFICIALLY_VERIFIED_AUTHENTIC' : 'SIGNATURE_TAMPERED',
+  };
+
+  return res.json({
+    success: isSignatureValid,
+    verified: isSignatureValid,
+    certificate: payload,
+    ...payload,
   });
 });
 

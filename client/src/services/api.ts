@@ -96,15 +96,11 @@ export async function fetchApi(endpoint: string, options: FetchApiOptions = {}):
     return inFlightCache.get(cacheKey_)!;
   }
 
-  // Create abort controller if signal not provided
-  const controller = signal ? null : new AbortController();
-  const requestSignal = signal || controller?.signal;
-
   const requestPromise = (async () => {
     const res = await fetch(`${API_BASE}${endpoint}`, {
       ...fetchOptions,
       headers,
-      signal: requestSignal,
+      signal,
     });
 
     const data = await res.json().catch(() => ({}));
@@ -131,14 +127,6 @@ export async function fetchApi(endpoint: string, options: FetchApiOptions = {}):
     inFlightCache.set(cacheKey_, requestPromise);
     // Remove from cache after request completes (success or failure)
     requestPromise.finally(() => inFlightCache.delete(cacheKey_));
-  }
-
-  // If we created the controller, return a promise that can be aborted
-  if (controller) {
-    return {
-      data: requestPromise,
-      abort: () => controller.abort(),
-    };
   }
 
   return requestPromise;

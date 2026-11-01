@@ -3,6 +3,7 @@ import { authenticateJwt, authorizeRoles, AuthenticatedRequest } from '../middle
 import { CryptoService } from '../services/cryptoService';
 import { AuditLedgerService } from '../services/auditLedgerService';
 import { WebSocketService } from '../services/websocketService';
+import { ExamLifecycleService } from '../services/examLifecycleService';
 import { CONFIG } from '../config';
 import { prisma } from '../lib/prisma';
 
@@ -183,7 +184,7 @@ router.post(
       return res.status(400).json({ error: 'Missing targetState parameter' });
     }
 
-    const { ExamLifecycleService } = await import('../services/examLifecycleService.js');
+
     const result = await ExamLifecycleService.transitionState({
       examId,
       targetState,
