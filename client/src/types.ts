@@ -182,3 +182,117 @@ export interface AdmitCard {
   qrChecksum: string;
   createdAt: string;
 }
+
+export interface OperationalAlert {
+  id: string;
+  code: string;
+  severity: 'CRITICAL' | 'WARNING' | 'INFO';
+  title: string;
+  description: string;
+  timestamp: string;
+  metadata?: any;
+}
+
+export interface ControlTowerExam {
+  id: string;
+  examCode: string;
+  title: string;
+  status: 'SCHEDULED' | 'RELEASED' | 'ACTIVE' | 'RUNNING' | 'PAUSED' | 'FROZEN' | 'COMPLETED' | 'AUDITED';
+  scheduledStart: string;
+  scheduledEnd: string;
+  durationMinutes: number;
+  totalMarks: number;
+  globalReleaseToken?: string | null;
+  blueprint?: {
+    totalQuestions: number;
+    subjects: string[];
+    signedChecksum?: string;
+  } | null;
+  metrics: {
+    totalCentres: number;
+    activatedCentres: number;
+    totalRegisteredCandidates: number;
+    activeSessions: number;
+    submittedSessions: number;
+  };
+  allowedTransitions: string[];
+}
+
+export interface ControlTowerCentre {
+  id: string;
+  centreCode: string;
+  name: string;
+  state: string;
+  district: string;
+  capacity: number;
+  status: string;
+  connectivityStatus: string;
+  securityStatus: string;
+  readinessStatus: 'READY' | 'WARNING' | 'BLOCKED' | 'OFFLINE';
+  readinessReason: string;
+  deviceMetrics: {
+    total: number;
+    authorized: number;
+    inExam: number;
+    offline: number;
+    maintenance: number;
+  };
+  hasActiveGateway: boolean;
+  activeSessionsCount: number;
+}
+
+export interface ControlTowerDevice {
+  id: string;
+  deviceId: string;
+  serialNumber: string;
+  ipAddress: string;
+  status: string;
+  lastHeartbeat: string;
+  centre: {
+    id: string;
+    centreCode: string;
+    name: string;
+    state: string;
+    district: string;
+  };
+  diagnostics: {
+    cameraStatus: 'PASS' | 'FAIL' | 'CHECKING';
+    micStatus: 'PASS' | 'FAIL' | 'CHECKING';
+    screenRes: string;
+    networkLatencyMs: number;
+    overallStatus: 'PASS' | 'FAIL';
+  };
+}
+
+export interface ControlTowerSession {
+  id: string;
+  sessionToken: string;
+  status: 'LOBBY' | 'IN_PROGRESS' | 'PAUSED' | 'SUBMITTED' | 'FROZEN';
+  startedAt?: string | null;
+  endedAt?: string | null;
+  answerCount: number;
+  candidate: {
+    id: string;
+    candidateCode: string;
+    fullName: string;
+    category: string;
+  };
+  exam: {
+    id: string;
+    examCode: string;
+    title: string;
+    status: string;
+  };
+  centre: {
+    id: string;
+    centreCode: string;
+    name: string;
+    state: string;
+  };
+  device: {
+    id: string;
+    deviceId: string;
+    ipAddress: string;
+    status: string;
+  };
+}

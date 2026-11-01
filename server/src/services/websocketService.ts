@@ -3,7 +3,7 @@ import http from 'http';
 import jwt from 'jsonwebtoken';
 import { CONFIG } from '../config';
 
-interface ConnectedClient {
+export interface ConnectedClient {
   socket: WebSocket;
   isAuthenticated?: boolean;
   userId?: string;
@@ -17,7 +17,7 @@ interface ConnectedClient {
   connectedAt: number;
 }
 
-type WSEventType =
+export type WSEventType =
   | 'EXAM_RELEASED'
   | 'EXAM_PAUSED'
   | 'EXAM_RESUMED'
@@ -26,10 +26,13 @@ type WSEventType =
   | 'SYSTEM_NOTICE'
   | 'DEVICE_BLOCKED'
   | 'EXAM_STATE_CHANGED'
+  | 'OPERATIONAL_ALERT'
+  | 'CENTRE_STATUS_CHANGED'
+  | 'SESSION_TELEMETRY_UPDATE'
   | 'CLIENT_JOINED'
   | 'CLIENT_LEFT';
 
-interface WSEvent {
+export interface WSEvent {
   type: WSEventType;
   payload: any;
   targetCentreId?: string;
@@ -46,7 +49,7 @@ export class WebSocketService {
   static initialize(server: http.Server) {
     this.wss = new WebSocketServer({ server, path: '/ws' });
 
-    this.wss.on('connection', (socket: WebSocket, req) => {
+    this.wss.on('connection', (socket: WebSocket) => {
       const clientId = this.generateClientId();
       const clientRecord: ConnectedClient = {
         socket,
@@ -57,12 +60,14 @@ export class WebSocketService {
       this.clients.set(clientId, clientRecord);
 
       // Send welcome message
-      socket.send(JSON.stringify({
-        type: 'SYSTEM_NOTICE',
-        message: 'Connected to ParikshaTantra Real-Time Security WebSocket Server.',
-        timestamp: new Date().toISOString(),
-        clientId,
-      }));
+      socket.send(
+        JSON.stringify({
+          type: 'SYSTEM_NOTICE',
+          message: 'Connected to ParikshaTantra Real-Time Security WebSocket Server.',
+          timestamp: new Date().toISOString(),
+          clientId,
+        })
+      );
 
       // Handle incoming messages
       socket.on('message', (message: string) => {
@@ -102,6 +107,53 @@ export class WebSocketService {
     return `ws_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   }
 
+  /**
+   * Evaluates role-based room access controls to prevent unauthorized room snooping.
+   */
+  public static authorizeRoomJoin(client: ConnectedClient, room: string): boolean {
+    if (!room) return false;
+    const normalized = room.trim().toLowerCase();
+
+    // National operational telemetry room
+    if (normalized === 'national' || normalized === 'national_operations') {
+      const allowedRoles = ['SUPER_ADMIN', 'NATIONAL_AUTHORITY', 'SECURITY_OFFICER', 'AUDITOR', 'EXAM_CONTROLLER'];
+      return !!client.isAuthenticated && !!client.role && allowedRoles.includes(client.role);
+    }
+
+    // State level operations room (e.g. "state:delhi", "state:maharashtra")
+    if (normalized.startsWith('state:')) {
+      const allowedRoles = ['SUPER_ADMIN', 'NATIONAL_AUTHORITY', 'STATE_AUTHORITY', 'SECURITY_OFFICER', 'EXAM_CONTROLLER'];
+      return !!client.isAuthenticated && !!client.role && allowedRoles.includes(client.role);
+    }
+
+    // District level operations room (e.g. "district:dwarka")
+    if (normalized.startsWith('district:')) {
+      const allowedRoles = ['SUPER_ADMIN', 'NATIONAL_AUTHORITY', 'STATE_AUTHORITY', 'DISTRICT_AUTHORITY', 'SECURITY_OFFICER'];
+      return !!client.isAuthenticated && !!client.role && allowedRoles.includes(client.role);
+    }
+
+    // Centre level operations room (e.g. "centre:CENTRE-DELHI-01")
+    if (normalized.startsWith('centre:')) {
+      const allowedRoles = [
+        'SUPER_ADMIN',
+        'NATIONAL_AUTHORITY',
+        'STATE_AUTHORITY',
+        'DISTRICT_AUTHORITY',
+        'CENTRE_ADMIN',
+        'INVIGILATOR',
+        'SECURITY_OFFICER',
+      ];
+      return !!client.isAuthenticated && !!client.role && allowedRoles.includes(client.role);
+    }
+
+    // Exam specific room (e.g. "exam:EXAM-NEET-2026")
+    if (normalized.startsWith('exam:')) {
+      return !!client.isAuthenticated;
+    }
+
+    return !!client.isAuthenticated;
+  }
+
   private static handleMessage(clientId: string, parsed: any) {
     const client = this.clients.get(clientId);
     if (!client) return;
@@ -118,13 +170,15 @@ export class WebSocketService {
           client.candidateId = parsed.candidateId;
           client.deviceId = parsed.deviceId;
 
-          client.socket.send(JSON.stringify({
-            type: 'IDENTIFY_ACK',
-            status: 'AUTHENTICATED',
-            role: decoded.role,
-            userId: decoded.userId,
-            clientId,
-          }));
+          client.socket.send(
+            JSON.stringify({
+              type: 'IDENTIFY_ACK',
+              status: 'AUTHENTICATED',
+              role: decoded.role,
+              userId: decoded.userId,
+              clientId,
+            })
+          );
 
           // Broadcast join event
           this.broadcastPresence('CLIENT_JOINED', {
@@ -136,10 +190,12 @@ export class WebSocketService {
             deviceId: parsed.deviceId,
           });
         } catch (authErr) {
-          client.socket.send(JSON.stringify({
-            type: 'AUTH_ERROR',
-            message: 'Invalid or expired WebSocket authentication token.',
-          }));
+          client.socket.send(
+            JSON.stringify({
+              type: 'AUTH_ERROR',
+              message: 'Invalid or expired WebSocket authentication token.',
+            })
+          );
         }
       } else if (parsed.role) {
         client.role = parsed.role;
@@ -147,12 +203,14 @@ export class WebSocketService {
         client.candidateId = parsed.candidateId;
         client.deviceId = parsed.deviceId;
 
-        client.socket.send(JSON.stringify({
-          type: 'IDENTIFY_ACK',
-          status: 'REGISTERED',
-          role: parsed.role,
-          clientId,
-        }));
+        client.socket.send(
+          JSON.stringify({
+            type: 'IDENTIFY_ACK',
+            status: 'REGISTERED',
+            role: parsed.role,
+            clientId,
+          })
+        );
 
         this.broadcastPresence('CLIENT_JOINED', {
           clientId,
@@ -167,6 +225,19 @@ export class WebSocketService {
       client.socket.send(JSON.stringify({ type: 'PONG', timestamp: Date.now() }));
     } else if (parsed.type === 'JOIN') {
       if (parsed.room) {
+        const isAuthorized = this.authorizeRoomJoin(client, parsed.room);
+        if (!isAuthorized) {
+          client.socket.send(
+            JSON.stringify({
+              type: 'ROOM_ACCESS_DENIED',
+              room: parsed.room,
+              message: `Security Access Violation: Client is not authorized to join room '${parsed.room}'.`,
+              timestamp: Date.now(),
+            })
+          );
+          return;
+        }
+
         if (!client.rooms) client.rooms = new Set();
         client.rooms.add(parsed.room);
         client.socket.send(JSON.stringify({ type: 'JOIN_ACK', room: parsed.room, timestamp: Date.now() }));
@@ -274,6 +345,47 @@ export class WebSocketService {
         client.socket.send(payloadStr);
       }
     }
+  }
+
+  /**
+   * Broadcasts real-time operational alerts to control tower rooms.
+   */
+  static broadcastOperationalAlert(alert: any, targetRoom: string = 'national') {
+    this.broadcast({
+      type: 'OPERATIONAL_ALERT',
+      payload: alert,
+      targetRoom,
+    });
+  }
+
+  /**
+   * Broadcasts exam lifecycle status transitions.
+   */
+  static broadcastExamLifecycle(examId: string, status: string, payload: any = {}) {
+    this.broadcast({
+      type: 'EXAM_STATE_CHANGED',
+      payload: { examId, status, ...payload, timestamp: Date.now() },
+    });
+  }
+
+  /**
+   * Broadcasts exam centre operational/connectivity status updates.
+   */
+  static broadcastCentreStatus(centreId: string, status: string, payload: any = {}) {
+    this.broadcast({
+      type: 'CENTRE_STATUS_CHANGED',
+      payload: { centreId, status, ...payload, timestamp: Date.now() },
+    });
+  }
+
+  /**
+   * Broadcasts candidate session telemetry updates.
+   */
+  static broadcastSessionTelemetry(sessionId: string, status: string, payload: any = {}) {
+    this.broadcast({
+      type: 'SESSION_TELEMETRY_UPDATE',
+      payload: { sessionId, status, ...payload, timestamp: Date.now() },
+    });
   }
 
   /**

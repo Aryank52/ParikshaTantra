@@ -89,13 +89,11 @@ async function runEndToEndLifecycleTest() {
   assert(releaseResult.success === true, `Global Exam State Transition executed: Status -> ${releaseResult.newState}`);
 
   // Invalidate any existing active activations to respect partial unique constraint
-  await prisma.centreActivation.updateMany({
-    where: { examId: exam!.id, centreId: centre!.id, isValid: true },
-    data: { isValid: false },
-  });
-
   const timeWindow = Math.floor(Date.now() / (1000 * 60 * 15));
   const activationToken = CryptoService.generateActivationToken(exam!.id, exam!.examCode, centre!.id, centre!.centreCode, timeWindow);
+
+  // Invalidate any existing activations for this exam & centre to respect unique constraints
+  await prisma.centreActivation.deleteMany({ where: { OR: [{ examId: exam!.id, centreId: centre!.id }, { activationToken }] } });
   const centreActivation = await prisma.centreActivation.create({
     data: {
       examId: exam!.id,
