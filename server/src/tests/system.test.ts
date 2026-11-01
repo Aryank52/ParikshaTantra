@@ -103,6 +103,7 @@ async function runSystemTestSuite() {
 
   const tamperedCertData = JSON.stringify({ ...JSON.parse(certData), score: 720 });
   const isTamperedSignatureValid = CryptoService.verifySignature(tamperedCertData, signature);
+  assert(isTamperedSignatureValid === false, 'Tampered certificate payload signature verification fails');
   // --- 6. JWT Authentication & WebSocket Handshake Tests ---
   console.log('\n--- 6. JWT Authentication & WebSocket Handshake Tests ---');
   const jwt = require('jsonwebtoken');

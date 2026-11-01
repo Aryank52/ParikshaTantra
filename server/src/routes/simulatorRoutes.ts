@@ -1,13 +1,12 @@
 import { Router, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { ThreatEngineService } from '../services/threatEngineService';
 import { AuditLedgerService } from '../services/auditLedgerService';
 import { LeakDetectionService } from '../services/leakDetectionService';
 import { CryptoService } from '../services/cryptoService';
 import { WebSocketService } from '../services/websocketService';
+import { prisma } from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // POST /api/simulator/execute - Run selected Attack Scenario
 router.post('/execute', async (req, res: Response) => {

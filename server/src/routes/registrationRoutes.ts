@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
+import { prisma } from '../lib/prisma';
+import { CryptoService } from '../services/cryptoService';
+import { registrationRateLimiter } from '../middleware/rateLimitMiddleware';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // POST /api/registration/eligibility-check
 router.post('/eligibility-check', async (req: Request, res: Response) => {
@@ -38,7 +39,7 @@ router.post('/eligibility-check', async (req: Request, res: Response) => {
 });
 
 // POST /api/registration/apply - Candidate Application Submission & Auto Admit Card Generation
-router.post('/apply', async (req: Request, res: Response) => {
+router.post('/apply', registrationRateLimiter, async (req: Request, res: Response) => {
   try {
     const { fullName, email, category, dob, qualification, examCatalogCode, preferredCity1, preferredCity2 } = req.body;
 
@@ -73,7 +74,7 @@ router.post('/apply', async (req: Request, res: Response) => {
     // Auto allocate seat node & digital signature checksum
     const labNode = `Terminal Node ${Math.floor(1 + Math.random() * 40)}${['A', 'B', 'C'][Math.floor(Math.random() * 3)]}`;
     const sigPayload = `${rollNumber}:${appNumber}:${fullName}:${exam.title}:${labNode}`;
-    const digitalSignature = crypto.createHmac('sha256', 'PARIKSHATANTRA_SECRET_KEY').update(sigPayload).digest('hex');
+    const digitalSignature = CryptoService.signPayload(sigPayload);
     const qrChecksum = `QR-${crypto.createHash('sha256').update(digitalSignature).digest('hex').substring(0, 16).toUpperCase()}`;
 
     const admitCard = await prisma.admitCard.create({

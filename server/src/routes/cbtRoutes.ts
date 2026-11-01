@@ -1,11 +1,10 @@
 import { Router, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { authenticateJwt, AuthenticatedRequest } from '../middleware/authMiddleware';
 import { CryptoService } from '../services/cryptoService';
 import { AuditLedgerService } from '../services/auditLedgerService';
+import { prisma } from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // POST /api/cbt/start-session - Start Candidate Exam Session from Centre Terminal
 router.post('/start-session', authenticateJwt, async (req: AuthenticatedRequest, res: Response) => {
@@ -18,13 +17,13 @@ router.post('/start-session', authenticateJwt, async (req: AuthenticatedRequest,
   const candidate = await prisma.candidate.findUnique({ where: { candidateCode } });
   if (!candidate) return res.status(404).json({ error: 'Candidate record not found' });
 
-  const exam = await prisma.exam.findUnique({ where: { id: examId } });
+  const exam = await prisma.exam.findFirst({ where: { OR: [{ id: examId }, { examCode: examId }] } });
   if (!exam) return res.status(404).json({ error: 'Exam not found' });
 
-  const centre = await prisma.examCentre.findUnique({ where: { id: centreId } });
+  const centre = await prisma.examCentre.findFirst({ where: { OR: [{ id: centreId }, { centreCode: centreId }] } });
   if (!centre) return res.status(404).json({ error: 'Centre not found' });
 
-  const device = await prisma.registeredDevice.findUnique({ where: { deviceId } });
+  const device = await prisma.registeredDevice.findFirst({ where: { OR: [{ deviceId }, { id: deviceId }] } });
   if (!device) return res.status(404).json({ error: 'Terminal device not registered' });
 
   if (device.status !== 'AUTHORIZED') {

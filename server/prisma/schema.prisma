@@ -38,6 +38,8 @@ model User {
   reviewedQuestions  Question[] @relation("QuestionReviewer")
   approvedAQuestions Question[] @relation("QuestionApproverA")
   approvedBQuestions Question[] @relation("QuestionApproverB")
+
+  @@index([organizationId])
 }
 
 model ExamCentre {
@@ -61,6 +63,10 @@ model ExamCentre {
   activations        CentreActivation[]
   candidateSessions  CandidateSession[]
   securityEvents     SecurityEvent[]
+
+  @@index([organizationId, status])
+  @@index([connectivityStatus, securityStatus])
+  @@index([state, district])
 }
 
 model RegisteredDevice {
@@ -76,6 +82,8 @@ model RegisteredDevice {
   createdAt      DateTime     @default(now())
 
   candidateSessions CandidateSession[]
+
+  @@index([centreId, status])
 }
 
 model Candidate {
@@ -93,6 +101,8 @@ model Candidate {
   sessions           CandidateSession[]
   submissions        Submission[]
   certificates       Certificate[]
+
+  @@index([allocatedCentreId, isVerifiedAtCentre])
 }
 
 model Question {
@@ -122,6 +132,8 @@ model Question {
   
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
+
+  @@index([status, createdAt])
 }
 
 model Exam {
@@ -145,6 +157,9 @@ model Exam {
   candidateSessions  CandidateSession[]
   submissions        Submission[]
   certificates       Certificate[]
+
+  @@index([organizationId, status, scheduledStart])
+  @@index([status, scheduledStart])
 }
 
 model ExamBlueprint {
@@ -169,6 +184,11 @@ model CentreActivation {
   expiresAt       DateTime
   usedAt          DateTime?
   isValid         Boolean    @default(true)
+
+  @@index([examId, centreId, isValid])
+  // Partial unique index created in migration 0003:
+  // CREATE UNIQUE INDEX "CentreActivation_one_valid_per_exam_centre" 
+  // ON "CentreActivation" ("examId", "centreId") WHERE "isValid" = true;
 }
 
 model CandidateSession {
@@ -187,6 +207,12 @@ model CandidateSession {
   endedAt                DateTime?
   localAnswerBufferJson  String?                // Local offline sync buffer backup
   createdAt              DateTime               @default(now())
+
+  @@index([examId, centreId, status])
+  @@index([candidateId, examId])
+  // Partial unique index created in migration 0003:
+  // CREATE UNIQUE INDEX "CandidateSession_one_active_per_exam" 
+  // ON "CandidateSession" ("candidateId", "examId") WHERE "status" IN ('ACTIVE', 'IN_PROGRESS', 'STARTED');
 }
 
 model Submission {
@@ -201,6 +227,8 @@ model Submission {
   score                Float?
   resultStatus         String    @default("PENDING") // PENDING, PASSED, FAILED, INVALIDATED
   submittedAt          DateTime  @default(now())
+
+  @@index([examId, candidateId])
 }
 
 model AuditEvent {
@@ -216,6 +244,10 @@ model AuditEvent {
   previousHash   String
   currentHash    String
   createdAt      DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([createdAt])
 }
 
 model SecurityEvent {
@@ -230,6 +262,10 @@ model SecurityEvent {
   detailsJson    String
   status         String      @default("OPEN") // OPEN, INVESTIGATING, RESOLVED, FROZEN
   createdAt      DateTime    @default(now())
+
+  @@index([centreId, severity, status, createdAt])
+  @@index([candidateId, createdAt])
+  @@index([deviceId, createdAt])
 }
 
 model LeakEvidence {
@@ -245,6 +281,9 @@ model LeakEvidence {
   submittedBy       String
   status            String   @default("UNDER_INVESTIGATION")
   createdAt         DateTime @default(now())
+
+  @@index([submittedBy, createdAt])
+  @@index([matchedQuestionId])
 }
 
 model Certificate {
@@ -289,6 +328,10 @@ model ExamCatalogEntry {
   representationType String   @default("REFERENCE") // OFFICIAL, REFERENCE, DEMO, EXTERNAL
   isDemoData         Boolean  @default(true)
   createdAt          DateTime @default(now())
+
+  @@index([authorityCode, level, state])
+  @@index([examDate])
+  @@index([category])
 }
 
 model StateMaster {
@@ -316,6 +359,8 @@ model DistrictMaster {
   connectivityScore Float   @default(100.0)
   dmOfficerName    String   @default("District Magistrate")
   createdAt        DateTime @default(now())
+
+  @@index([stateCode])
 }
 
 model CandidateApplication {
@@ -333,6 +378,10 @@ model CandidateApplication {
   status            String   @default("APPROVED") // DRAFT, SUBMITTED, ELIGIBLE, INELIGIBLE, APPROVED
   feePaid           Boolean  @default(true)
   createdAt         DateTime @default(now())
+
+  @@index([examCatalogCode, status])
+  @@index([email])
+  // @@unique([candidateId, examCatalogCode]) -- Requires duplicate check before applying
 }
 
 model AdmitCard {
@@ -352,6 +401,8 @@ model AdmitCard {
   digitalSignature   String   // HMAC/RSA signature string
   qrChecksum         String   @unique
   createdAt          DateTime @default(now())
+
+  @@index([examCode, assignedCentreCode])
 }
 
 model AuditMerkleBatch {
@@ -380,6 +431,9 @@ model AnswerSheetScan {
   uploadedBy      String
   evaluatedScore  Float?
   createdAt       DateTime @default(now())
+
+  @@index([examCode, centreCode, candidateRoll])
+  @@index([status, createdAt])
 }
 
 model HardwareCheckLog {
@@ -394,6 +448,7 @@ model HardwareCheckLog {
   overallStatus   String   @default("PASS") // PASS, WARNING, FAIL
   detailsJson     String
   createdAt       DateTime @default(now())
+
+  @@index([checkType, entityId, createdAt])
+  @@index([overallStatus, createdAt])
 }
-
-

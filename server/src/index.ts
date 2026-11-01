@@ -1,5 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import http from 'http';
+import path from 'path';
+import fs from 'fs';
 import cors from 'cors';
 import { CONFIG, validateSecrets } from './config';
 
@@ -42,18 +44,30 @@ const defaultOrigins = [
   'http://localhost:5173',
   'https://parikshatantra.vercel.app',
 ];
+
+const isProduction = process.env.NODE_ENV === 'production';
 const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
   ? process.env.CORS_ALLOWED_ORIGINS.split(',').map((o) => o.trim())
-  : defaultOrigins;
+  : isProduction ? [] : defaultOrigins;
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin) || defaultOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(null, true); // Permissive fallback for demo sandbox evaluation
+      // Allow requests with no origin (mobile apps, curl, etc.)
+      if (!origin) {
+        return callback(null, true);
       }
+
+      // In production, only allow explicitly configured origins
+      if (isProduction && allowedOrigins.length === 0) {
+        return callback(new Error('CORS_ALLOWED_ORIGINS must be configured in production'));
+      }
+
+      if (allowedOrigins.includes(origin) || (!isProduction && defaultOrigins.includes(origin))) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`CORS policy violation: Origin ${origin} not allowed`));
     },
     credentials: true,
   })
@@ -88,6 +102,30 @@ app.get('/api/health', (_req: Request, res: Response) => {
       websocketServer: { status: 'ONLINE', path: '/ws' },
     },
   });
+});
+
+// Secure Static Object & Local Storage Serving
+const uploadsDir = path.resolve(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use('/uploads', express.static(uploadsDir));
+
+app.get('/api/storage/object', (req: Request, res: Response) => {
+  const key = req.query.key as string;
+  if (!key || typeof key !== 'string') {
+    return res.status(400).json({ error: 'Missing object key' });
+  }
+  const safeKey = path.normalize(key).replace(/^(\.\.[\/\\])+/, '');
+  const filePath = path.join(uploadsDir, safeKey);
+  const resolvedPath = path.resolve(filePath);
+  if (!resolvedPath.startsWith(uploadsDir)) {
+    return res.status(403).json({ error: 'Access denied: Directory traversal detected' });
+  }
+  if (!fs.existsSync(resolvedPath)) {
+    return res.status(404).json({ error: 'Object not found' });
+  }
+  return res.sendFile(resolvedPath);
 });
 
 // Mount Routes

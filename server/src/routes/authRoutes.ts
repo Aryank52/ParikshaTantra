@@ -1,13 +1,13 @@
 import { Router, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { CONFIG } from '../config';
 import { authenticateJwt, AuthenticatedRequest } from '../middleware/authMiddleware';
+import { authRateLimiter } from '../middleware/rateLimitMiddleware';
 import { AuditLedgerService } from '../services/auditLedgerService';
+import { prisma } from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 const getClientIp = (req: any): string => {
   if (typeof req.ip === 'string') return req.ip;
@@ -16,7 +16,7 @@ const getClientIp = (req: any): string => {
 };
 
 // POST /api/auth/login
-router.post('/login', async (req: any, res: Response) => {
+router.post('/login', authRateLimiter, async (req: any, res: Response) => {
   const { username, password } = req.body;
 
   if (!username || !password) {

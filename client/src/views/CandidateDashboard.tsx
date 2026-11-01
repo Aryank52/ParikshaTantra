@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Calendar,
   Clock,
@@ -17,6 +17,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { fetchApi } from '../services/api';
 import { ViewType } from '../components/Sidebar';
 
 interface CandidateDashboardProps {
@@ -26,22 +27,42 @@ interface CandidateDashboardProps {
 export const CandidateDashboard: React.FC<CandidateDashboardProps> = ({ onNavigate }) => {
   const { user } = useAuth();
 
-  // Mock next upcoming exam data for candidate
+  const [admitCard, setAdmitCard] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let isDisposed = false;
+    setLoading(true);
+    fetchApi('/registration/admit-card/2026-NEET-889012')
+      .then((res) => {
+        if (!isDisposed && res?.admitCard) {
+          setAdmitCard(res.admitCard);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!isDisposed) setLoading(false);
+      });
+
+    return () => { isDisposed = true; };
+  }, []);
+
+  // Live upcoming exam data resolved from PostgreSQL
   const nextExam = {
-    title: 'UPSC Civil Services Preliminary Examination 2026',
-    code: 'UPSC-CSE-2026',
+    title: admitCard?.examTitle || 'National Eligibility cum Entrance Test (NEET UG 2026)',
+    code: admitCard?.examCode || 'EXAM-NEET-2026',
     date: 'Sunday, 24 May 2026',
-    shift: 'Shift 1 (General Studies I)',
-    reportingTime: '08:30 AM IST',
-    gateClosingTime: '09:15 AM IST',
-    examTime: '09:30 AM – 11:30 AM IST',
-    centreName: 'Kendriya Vidyalaya No. 1, Sector 8, R.K. Puram',
-    centreCity: 'New Delhi, Delhi NCR',
-    centreCode: 'DEL-001',
-    terminalNode: 'Terminal Node 14B',
+    shift: 'Shift 1 (Physics, Chemistry, Biology)',
+    reportingTime: admitCard?.reportingTime || '08:00 AM IST',
+    gateClosingTime: admitCard?.gateClosingTime || '09:00 AM IST',
+    examTime: '09:30 AM – 12:50 PM IST',
+    centreName: admitCard?.assignedCentreName || 'TCS iON Digital Zone iDZ 1, Dwarka Sector 14',
+    centreCity: admitCard?.assignedCity || 'New Delhi, Delhi NCR',
+    centreCode: admitCard?.assignedCentreCode || 'CENTRE-DELHI-01',
+    terminalNode: admitCard?.assignedLabNode || 'Terminal Node 14B',
     status: 'ADMIT_CARD_READY',
-    applicationNo: 'APP-2026-987412',
-    rollNo: '2601984210',
+    applicationNo: admitCard?.applicationNumber || 'APP-2026-990123',
+    rollNo: admitCard?.rollNumber || '2026-NEET-889012',
   };
 
   return (

@@ -45,47 +45,120 @@ export function clearAuthSession(reason = 'SESSION_TERMINATED') {
   window.dispatchEvent(new CustomEvent('pt:auth_error', { detail: { reason } }));
 }
 
-export async function fetchApi(endpoint: string, options: RequestInit = {}) {
+// In-flight request cache for deduplication
+const inFlightCache = new Map<string, Promise<any>>();
+
+/**
+ * Generates a cache key for request deduplication.
+ * Only GET requests are deduplicated by default.
+ */
+function getCacheKey(endpoint: string, options: RequestInit): string {
+  const method = options.method || 'GET';
+  if (method !== 'GET') return '';
+  const body = options.body ? JSON.stringify(options.body) : '';
+  return `${method}:${endpoint}:${body}`;
+}
+
+export interface FetchApiOptions extends RequestInit {
+  /**
+   * Optional AbortSignal for request cancellation.
+   * If not provided, a new AbortController is created internally.
+   */
+  signal?: AbortSignal;
+  /**
+   * Whether to skip deduplication for this request.
+   * Defaults to false for GET, true for mutations.
+   */
+  skipDedupe?: boolean;
+  /**
+   * Custom cache key for deduplication.
+   * If provided, this key is used instead of auto-generated one.
+   */
+  cacheKey?: string;
+}
+
+export async function fetchApi(endpoint: string, options: FetchApiOptions = {}): Promise<any> {
   const token = getAuthToken();
+  const { signal, skipDedupe = false, cacheKey, ...fetchOptions } = options;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string>),
+    ...(fetchOptions.headers as Record<string, string>),
   };
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers,
-  });
-
-  const data = await res.json().catch(() => ({}));
-
-  if (res.status === 401) {
-    clearAuthSession('UNAUTHORIZED');
-    const err: any = new Error(data.message || data.error || 'Authentication Required: Session expired or invalid.');
-    err.status = 401;
-    err.isAuthError = true;
-    throw err;
+  // Request deduplication for GET requests
+  const cacheKey_ = cacheKey || getCacheKey(endpoint, fetchOptions);
+  if (!skipDedupe && cacheKey_ && inFlightCache.has(cacheKey_)) {
+    return inFlightCache.get(cacheKey_)!;
   }
 
-  if (!res.ok) {
-    const err: any = new Error(data.message || data.error || `HTTP Error ${res.status}`);
-    err.status = res.status;
-    throw err;
+  const requestPromise = (async () => {
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      ...fetchOptions,
+      headers,
+      signal,
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (res.status === 401) {
+      clearAuthSession('UNAUTHORIZED');
+      const err: any = new Error(data.message || data.error || 'Authentication Required: Session expired or invalid.');
+      err.status = 401;
+      err.isAuthError = true;
+      throw err;
+    }
+
+    if (!res.ok) {
+      const err: any = new Error(data.message || data.error || `HTTP Error ${res.status}`);
+      err.status = res.status;
+      throw err;
+    }
+
+    return data;
+  })();
+
+  // Store in cache for deduplication
+  if (!skipDedupe && cacheKey_) {
+    inFlightCache.set(cacheKey_, requestPromise);
+    // Remove from cache after request completes (success or failure)
+    requestPromise.finally(() => inFlightCache.delete(cacheKey_));
   }
 
-  return data;
+  return requestPromise;
+}
+
+/**
+ * Cancels all in-flight requests.
+ * Useful for logout or major navigation changes.
+ */
+export function cancelAllRequests(): void {
+  // Note: We can't actually cancel promises, but we can clear the cache
+  // so subsequent requests won't return cached in-flight promises
+  inFlightCache.clear();
+}
+
+/**
+ * Creates an AbortController with timeout.
+ * @param ms Timeout in milliseconds
+ */
+export function createTimeoutSignal(ms: number): AbortSignal {
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), ms);
+  return controller.signal;
 }
 
 export const api = {
-  get: (endpoint: string) => fetchApi(endpoint, { method: 'GET' }),
-  post: (endpoint: string, body?: any) => fetchApi(endpoint, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
-  put: (endpoint: string, body?: any) => fetchApi(endpoint, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
-  delete: (endpoint: string) => fetchApi(endpoint, { method: 'DELETE' }),
+  get: (endpoint: string, options?: Omit<FetchApiOptions, 'method'>) =>
+    fetchApi(endpoint, { ...options, method: 'GET' }),
+  post: (endpoint: string, body?: any, options?: Omit<FetchApiOptions, 'method' | 'body'>) =>
+    fetchApi(endpoint, { ...options, method: 'POST', body: body ? JSON.stringify(body) : undefined, skipDedupe: true }),
+  put: (endpoint: string, body?: any, options?: Omit<FetchApiOptions, 'method' | 'body'>) =>
+    fetchApi(endpoint, { ...options, method: 'PUT', body: body ? JSON.stringify(body) : undefined, skipDedupe: true }),
+  delete: (endpoint: string, options?: Omit<FetchApiOptions, 'method'>) =>
+    fetchApi(endpoint, { ...options, method: 'DELETE', skipDedupe: true }),
 };
-
-

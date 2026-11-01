@@ -49,6 +49,8 @@ export async function seedDatabase() {
   const usersData = [
     { username: 'superadmin', fullName: 'Director General (Super Admin)', role: 'SUPER_ADMIN', orgId: nta.id },
     { username: 'national_controller', fullName: 'Chief Controller of Exams (NTA)', role: 'NATIONAL_AUTHORITY', orgId: nta.id },
+    { username: 'national_admin', fullName: 'Dr. V. Sharma (Chief National Controller)', role: 'NATIONAL_AUTHORITY', orgId: nta.id },
+    { username: 'candidate_demo', fullName: 'Aryan Kumar (Candidate)', role: 'CANDIDATE', orgId: nta.id },
     { username: 'upsc_controller', fullName: 'Chairman & Exam Secretary (UPSC)', role: 'NATIONAL_AUTHORITY', orgId: upsc.id },
     { username: 'state_officer_mpsc', fullName: 'State Commissioner (MPSC Maharashtra)', role: 'STATE_AUTHORITY', orgId: mpsc.id },
     { username: 'district_officer_lko', fullName: 'District Magistrate (Lucknow UP)', role: 'DISTRICT_AUTHORITY', orgId: uppsc.id },
@@ -331,6 +333,40 @@ export async function seedDatabase() {
         totalCentres: st.centres,
         totalSeats: st.seats,
       }
+    });
+  }
+
+  // 11b. Seed District Master Data
+  const districtsList = [
+    { code: 'DIST-DL-01', name: 'New Delhi', stateCode: 'DL', stateName: 'Delhi NCR', headquarters: 'New Delhi', seatingCapacity: 25000, activeCentres: 45, dmOfficerName: 'Shri R. Verma, IAS' },
+    { code: 'DIST-DL-02', name: 'Dwarka (South West)', stateCode: 'DL', stateName: 'Delhi NCR', headquarters: 'Dwarka', seatingCapacity: 28000, activeCentres: 50, dmOfficerName: 'Smt. P. Mehra, IAS' },
+    { code: 'DIST-MH-01', name: 'Mumbai City', stateCode: 'MH', stateName: 'Maharashtra', headquarters: 'Mumbai', seatingCapacity: 30000, activeCentres: 55, dmOfficerName: 'Shri A. Deshmukh, IAS' },
+    { code: 'DIST-MH-02', name: 'Pune', stateCode: 'MH', stateName: 'Maharashtra', headquarters: 'Pune', seatingCapacity: 28000, activeCentres: 48, dmOfficerName: 'Dr. R. Patil, IAS' },
+    { code: 'DIST-UP-01', name: 'Lucknow', stateCode: 'UP', stateName: 'Uttar Pradesh', headquarters: 'Lucknow', seatingCapacity: 32000, activeCentres: 58, dmOfficerName: 'Shri S. K. Awasthi, IAS' },
+    { code: 'DIST-UP-02', name: 'Kanpur Nagar', stateCode: 'UP', stateName: 'Uttar Pradesh', headquarters: 'Kanpur', seatingCapacity: 22000, activeCentres: 38, dmOfficerName: 'Shri V. Singhal, IAS' },
+    { code: 'DIST-BR-01', name: 'Patna', stateCode: 'BR', stateName: 'Bihar', headquarters: 'Patna', seatingCapacity: 26000, activeCentres: 44, dmOfficerName: 'Dr. C. Shekhar, IAS' },
+    { code: 'DIST-KA-01', name: 'Bengaluru Urban', stateCode: 'KA', stateName: 'Karnataka', headquarters: 'Bengaluru', seatingCapacity: 35000, activeCentres: 60, dmOfficerName: 'Smt. S. Reddy, IAS' },
+    { code: 'DIST-TS-01', name: 'Hyderabad', stateCode: 'TS', stateName: 'Telangana', headquarters: 'Hyderabad', seatingCapacity: 28000, activeCentres: 52, dmOfficerName: 'Shri K. Rao, IAS' },
+    { code: 'DIST-WB-01', name: 'Kolkata', stateCode: 'WB', stateName: 'West Bengal', headquarters: 'Kolkata', seatingCapacity: 25000, activeCentres: 46, dmOfficerName: 'Smt. M. Banerjee, IAS' },
+    { code: 'DIST-RJ-01', name: 'Jaipur', stateCode: 'RJ', stateName: 'Rajasthan', headquarters: 'Jaipur', seatingCapacity: 24000, activeCentres: 42, dmOfficerName: 'Shri P. C. Sharma, IAS' },
+    { code: 'DIST-GJ-01', name: 'Ahmedabad', stateCode: 'GJ', stateName: 'Gujarat', headquarters: 'Ahmedabad', seatingCapacity: 26000, activeCentres: 45, dmOfficerName: 'Smt. B. Patel, IAS' },
+  ];
+
+  for (const dst of districtsList) {
+    await prisma.districtMaster.upsert({
+      where: { code: dst.code },
+      update: {},
+      create: {
+        code: dst.code,
+        name: dst.name,
+        stateCode: dst.stateCode,
+        stateName: dst.stateName,
+        headquarters: dst.headquarters,
+        seatingCapacity: dst.seatingCapacity,
+        activeCentres: dst.activeCentres,
+        connectivityScore: 99.4,
+        dmOfficerName: dst.dmOfficerName,
+      },
     });
   }
 

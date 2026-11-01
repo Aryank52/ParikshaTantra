@@ -16,6 +16,9 @@
     "test": "npm --prefix client test --if-present && npm --prefix server test --if-present",
     "prisma:generate": "npm --prefix server run prisma:generate",
     "prisma:validate": "npm --prefix server run prisma:validate",
+    "db:migrate": "npm --prefix server run db:migrate",
+    "db:migrate:deploy": "npm --prefix server run db:migrate:deploy",
+    "db:migrate:status": "npm --prefix server run db:migrate:status",
     "db:seed": "npm --prefix server run db:seed",
     "seed:demo": "npm --prefix server run seed:demo"
   },

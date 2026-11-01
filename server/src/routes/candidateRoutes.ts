@@ -1,10 +1,10 @@
 import { Router, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { authenticateJwt, AuthenticatedRequest } from '../middleware/authMiddleware';
 import { CryptoService } from '../services/cryptoService';
+import { AuditLedgerService } from '../services/auditLedgerService';
+import { prisma } from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 // GET /api/candidate/admit-card/:candidateCode - Candidate Admit Card Details
 router.get('/admit-card/:candidateCode', authenticateJwt, async (req: AuthenticatedRequest, res: Response) => {
@@ -63,7 +63,7 @@ router.post('/verify-attendance', authenticateJwt, async (req: AuthenticatedRequ
     },
   });
 
-  const { AuditLedgerService } = await import('../services/auditLedgerService.js');
+
   await AuditLedgerService.logEvent({
     eventType: 'CANDIDATE_CENTRE_VERIFIED',
     actorId: req.user!.userId,

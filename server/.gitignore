@@ -19,6 +19,12 @@ yarn-error.log*
 # Uploads / Storage fallback
 uploads/
 
+# Local databases and SQLite binaries
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
 # Editor directories and files
 .vscode/
 .idea/
