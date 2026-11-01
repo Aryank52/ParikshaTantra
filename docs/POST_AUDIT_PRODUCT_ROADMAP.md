@@ -127,3 +127,4 @@ Every subsequent PR or feature release must strictly satisfy:
 3. **Database Migration Safety**: Zero destructive DDL commands (`DROP`, `TRUNCATE`, `migrate reset`).
 4. **End-to-End Lifecycle Validation**: The automated 23-step E2E lifecycle test passes.
 5. **Git Pipeline**: Commits created on feature branches and merged via clean squash/rebase PRs into `main`.
+

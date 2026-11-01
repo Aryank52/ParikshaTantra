@@ -117,3 +117,4 @@ To prevent future branch freezes and GitHub repository rule violations:
    npm --prefix server run test:e2e
    git push origin <feature-branch>
    ```
+
