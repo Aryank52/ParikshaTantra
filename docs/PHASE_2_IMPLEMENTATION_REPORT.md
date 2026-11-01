@@ -122,3 +122,4 @@ With Phase 2 fully verified and operational, the recommended next milestone is:
   - Enhanced Gateway HMAC token exchange and offline resilience.
   - Granular invigilator terminal allocation and hall ticket barcode scanners.
   - Automated centre pre-flight verification checklist.
+
