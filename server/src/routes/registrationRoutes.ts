@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import crypto from 'crypto';
 import { prisma } from '../lib/prisma';
+import { CryptoService } from '../services/cryptoService';
 import { registrationRateLimiter } from '../middleware/rateLimitMiddleware';
 
 const router = Router();
@@ -73,7 +74,7 @@ router.post('/apply', registrationRateLimiter, async (req: Request, res: Respons
     // Auto allocate seat node & digital signature checksum
     const labNode = `Terminal Node ${Math.floor(1 + Math.random() * 40)}${['A', 'B', 'C'][Math.floor(Math.random() * 3)]}`;
     const sigPayload = `${rollNumber}:${appNumber}:${fullName}:${exam.title}:${labNode}`;
-    const digitalSignature = crypto.createHmac('sha256', 'PARIKSHATANTRA_SECRET_KEY').update(sigPayload).digest('hex');
+    const digitalSignature = CryptoService.signPayload(sigPayload);
     const qrChecksum = `QR-${crypto.createHash('sha256').update(digitalSignature).digest('hex').substring(0, 16).toUpperCase()}`;
 
     const admitCard = await prisma.admitCard.create({

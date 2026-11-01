@@ -1,5 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import http from 'http';
+import path from 'path';
+import fs from 'fs';
 import cors from 'cors';
 import { CONFIG, validateSecrets } from './config';
 
@@ -100,6 +102,30 @@ app.get('/api/health', (_req: Request, res: Response) => {
       websocketServer: { status: 'ONLINE', path: '/ws' },
     },
   });
+});
+
+// Secure Static Object & Local Storage Serving
+const uploadsDir = path.resolve(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use('/uploads', express.static(uploadsDir));
+
+app.get('/api/storage/object', (req: Request, res: Response) => {
+  const key = req.query.key as string;
+  if (!key || typeof key !== 'string') {
+    return res.status(400).json({ error: 'Missing object key' });
+  }
+  const safeKey = path.normalize(key).replace(/^(\.\.[\/\\])+/, '');
+  const filePath = path.join(uploadsDir, safeKey);
+  const resolvedPath = path.resolve(filePath);
+  if (!resolvedPath.startsWith(uploadsDir)) {
+    return res.status(403).json({ error: 'Access denied: Directory traversal detected' });
+  }
+  if (!fs.existsSync(resolvedPath)) {
+    return res.status(404).json({ error: 'Object not found' });
+  }
+  return res.sendFile(resolvedPath);
 });
 
 // Mount Routes

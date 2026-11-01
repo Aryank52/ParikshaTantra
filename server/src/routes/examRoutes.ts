@@ -25,8 +25,13 @@ router.get('/', authenticateJwt, async (req: AuthenticatedRequest, res: Response
 // GET /api/exams/:id - Exam detail
 router.get('/:id', authenticateJwt, async (req: AuthenticatedRequest, res: Response) => {
   const id = req.params.id as string;
-  const exam = await prisma.exam.findUnique({
-    where: { id },
+  const exam = await prisma.exam.findFirst({
+    where: {
+      OR: [
+        { id },
+        { examCode: id },
+      ],
+    },
     include: {
       organization: true,
       blueprint: true,
@@ -85,8 +90,8 @@ router.post(
 
     if (!examId) return res.status(400).json({ error: 'Missing examId' });
 
-    const exam = await prisma.exam.findUnique({
-      where: { id: examId as string },
+    const exam = await prisma.exam.findFirst({
+      where: { OR: [{ id: examId as string }, { examCode: examId as string }] },
       include: { blueprint: true },
     });
 
@@ -103,7 +108,7 @@ router.post(
     const releasedAt = new Date();
 
     const updatedExam = await prisma.exam.update({
-      where: { id: examId as string },
+      where: { id: exam.id },
       data: {
         status: 'RELEASED',
         globalReleaseToken: releaseToken,
@@ -118,6 +123,12 @@ router.post(
     const generatedActivations: any[] = [];
 
     for (const centre of centres) {
+      // Invalidate existing valid activations for this exam/centre to respect partial unique constraint
+      await prisma.centreActivation.updateMany({
+        where: { examId: exam.id, centreId: centre.id, isValid: true },
+        data: { isValid: false },
+      });
+
       const derivedToken = CryptoService.generateActivationToken(
         exam.id,
         exam.examCode,
@@ -184,9 +195,15 @@ router.post(
       return res.status(400).json({ error: 'Missing targetState parameter' });
     }
 
+    const exam = await prisma.exam.findFirst({
+      where: { OR: [{ id: examId }, { examCode: examId }] },
+    });
+    if (!exam) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
 
     const result = await ExamLifecycleService.transitionState({
-      examId,
+      examId: exam.id,
       targetState,
       actorUserId: req.user!.userId,
       actorRole: req.user!.role,
@@ -206,4 +223,3 @@ router.post(
 );
 
 export default router;
-

@@ -33,8 +33,8 @@ export class ExamLifecycleService {
     targetState: ExamLifecycleState
   ): Promise<{ valid: boolean; violations: string[] }> {
     const violations: string[] = [];
-    const exam = await prisma.exam.findUnique({
-      where: { id: examId },
+    const exam = await prisma.exam.findFirst({
+      where: { OR: [{ id: examId }, { examCode: examId }] },
       include: { blueprint: true, activations: true },
     });
 
@@ -91,7 +91,7 @@ export class ExamLifecycleService {
     actorRole: string;
     reason?: string;
   }): Promise<TransitionResult> {
-    const exam = await prisma.exam.findUnique({ where: { id: params.examId } });
+    const exam = await prisma.exam.findFirst({ where: { OR: [{ id: params.examId }, { examCode: params.examId }] } });
     if (!exam) {
       return {
         success: false,
@@ -117,7 +117,7 @@ export class ExamLifecycleService {
 
     // Perform database update
     const updatedExam = await prisma.exam.update({
-      where: { id: params.examId },
+      where: { id: exam.id },
       data: {
         status: params.targetState,
         releasedAt: params.targetState === 'RELEASED' ? new Date() : exam.releasedAt,

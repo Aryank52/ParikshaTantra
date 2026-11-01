@@ -142,5 +142,11 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 
+# Database files & SQLite binaries
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
 # Dependencies
 node_modules/

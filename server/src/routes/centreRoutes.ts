@@ -27,8 +27,13 @@ router.get('/', authenticateJwt, async (req: AuthenticatedRequest, res: Response
 // GET /api/centres/:id - Centre detail with devices & active candidate sessions
 router.get('/:id', authenticateJwt, async (req: AuthenticatedRequest, res: Response) => {
   const id = req.params.id as string;
-  const centre = await prisma.examCentre.findUnique({
-    where: { id },
+  const centre = await prisma.examCentre.findFirst({
+    where: {
+      OR: [
+        { id },
+        { centreCode: id },
+      ],
+    },
     include: {
       devices: true,
       candidates: true,
@@ -54,10 +59,14 @@ router.post(
       return res.status(400).json({ error: 'Missing required activation parameter (centreId, examId, activationToken).' });
     }
 
-    const centre = await prisma.examCentre.findUnique({ where: { id: centreId as string } });
+    const centre = await prisma.examCentre.findFirst({
+      where: { OR: [{ id: centreId as string }, { centreCode: centreId as string }] },
+    });
     if (!centre) return res.status(404).json({ error: 'Exam centre not found' });
 
-    const exam = await prisma.exam.findUnique({ where: { id: examId as string } });
+    const exam = await prisma.exam.findFirst({
+      where: { OR: [{ id: examId as string }, { examCode: examId as string }] },
+    });
     if (!exam) return res.status(404).json({ error: 'Exam not found' });
 
     if (exam.status !== 'RELEASED' && exam.status !== 'RUNNING') {
@@ -69,8 +78,8 @@ router.post(
 
     const activationRecord = await prisma.centreActivation.findFirst({
       where: {
-        examId: examId as string,
-        centreId: centreId as string,
+        examId: exam.id,
+        centreId: centre.id,
         activationToken: (activationToken as string).trim().toUpperCase(),
         isValid: true,
       },
@@ -104,7 +113,7 @@ router.post(
     });
 
     const updatedCentre = await prisma.examCentre.update({
-      where: { id: centreId as string },
+      where: { id: centre.id },
       data: {
         status: 'ACTIVATED',
         connectivityStatus: 'ONLINE',
@@ -117,7 +126,7 @@ router.post(
       actorRole: req.user!.role,
       action: `Centre Gateway ${centre.name} (${centre.centreCode}) ACTIVATED for Exam ${exam.examCode}. Candidate CBT sync enabled.`,
       ipAddress: getClientIp(req),
-      metadata: { centreId, examId, activationToken },
+      metadata: { centreId: centre.id, examId: exam.id, activationToken },
     });
 
     return res.json({
@@ -139,6 +148,11 @@ router.post(
       return res.status(400).json({ error: 'Missing deviceId or centreId' });
     }
 
+    const targetCentre = await prisma.examCentre.findFirst({
+      where: { OR: [{ id: centreId as string }, { centreCode: centreId as string }] },
+    });
+    if (!targetCentre) return res.status(404).json({ error: 'Exam centre not found' });
+
     const device = await prisma.registeredDevice.upsert({
       where: { deviceId: deviceId as string },
       update: {
@@ -147,7 +161,7 @@ router.post(
       },
       create: {
         deviceId: deviceId as string,
-        centreId: centreId as string,
+        centreId: targetCentre.id,
         serialNumber: serialNumber || `DEV-SN-${Math.floor(1000 + Math.random() * 9000)}`,
         ipAddress: getClientIp(req),
         hardwareHash: hardwareHash || 'HW-HASH-GENERIC',
@@ -163,7 +177,6 @@ router.post(
 router.get('/:id/readiness', authenticateJwt, async (req: AuthenticatedRequest, res: Response) => {
   const id = req.params.id as string;
   try {
-
     const report = await CentreReadinessService.evaluateReadiness(id);
     return res.json(report);
   } catch (err: any) {
@@ -172,4 +185,3 @@ router.get('/:id/readiness', authenticateJwt, async (req: AuthenticatedRequest, 
 });
 
 export default router;
-
